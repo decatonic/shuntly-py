@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "shuntly"
+version = "0.1.0"
+description = "Monkey-patch LLM clients to record all I/O to configurable sinks"
+requires-python = ">=3.11"
+license = "MIT"
+
+[project.optional-dependencies]
+dev = ["pytest", "anthropic", "openai"]
+
+[tool.setuptools.packages.find]
+include = ["shuntly*"]
