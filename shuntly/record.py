@@ -6,7 +6,7 @@ import os
 import socket
 from datetime import UTC, datetime
 from typing import Any
-
+import dataclasses
 
 class Record:
     __slots__ = (
@@ -70,8 +70,22 @@ class Record:
             error=error,
         )
 
+    @staticmethod
+    def _json_default(obj: Any) -> Any:
+        # Pydantic v2 models (anthropic, openai SDKs): model_dump
+        # Pydantic v1 / other dict-able objects: dict
+        for attr in ('model_dump', 'dict', 'to_dict'):
+            if func := getattr(obj, attr, None):
+                return func()
+
+        if isinstance(obj, datetime):
+            return obj.isoformat()
+        if dataclasses.is_dataclass(obj) and not isinstance(obj, type):
+            return dataclasses.asdict(obj)
+        return str(obj)
+
     def to_json(self) -> str:
         return json.dumps(
             {slot: getattr(self, slot) for slot in self.__slots__},
-            default=str,
+            default=self._json_default,
         )

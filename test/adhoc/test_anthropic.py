@@ -42,7 +42,7 @@ def test_wrap_captures_record():
     assert record["request"]["max_tokens"] == 32
     assert record["error"] is None
     assert record["duration_ms"] > 0
-    assert "pong" in record["response"]
+    assert record["response"]['id'].startswith('msg_')
 
 
 # def test_wrap_captures_error():
