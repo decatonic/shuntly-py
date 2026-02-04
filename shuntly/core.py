@@ -31,7 +31,9 @@ def _resolve_dotted(obj: object, dotted: str) -> tuple[object, str]:
 
 class Shuntly:
     @staticmethod
-    def wrap(client: T, sink: Sink | None = None, *, methods: list[str] | None = None) -> T:
+    def wrap(
+        client: T, sink: Sink | None = None, *, methods: list[str] | None = None
+    ) -> T:
         if sink is None:
             sink = SinkStream()
 
