@@ -3,11 +3,17 @@ import json
 
 import pytest
 
-from shuntly import Record, Shuntly, SinkStream
+from shuntly import Shuntly, SinkStream
+
+# ------------------------------------------------------------------------------
+# anthropic
 
 
 class _Messages:
     def create(self, **kwargs):
+        return {"id": "msg_fake", "content": "hello"}
+
+    def stream(self, **kwargs):
         return {"id": "msg_fake", "content": "hello"}
 
 
@@ -19,6 +25,10 @@ class _MockAnthropicClient:
 # Make it look like anthropic.Anthropic to the registry
 _MockAnthropicClient.__module__ = "anthropic"
 _MockAnthropicClient.__qualname__ = "Anthropic"
+
+
+# ------------------------------------------------------------------------------
+# openai
 
 
 class _Completions:
@@ -40,16 +50,17 @@ _MockOpenAIClient.__module__ = "openai"
 _MockOpenAIClient.__qualname__ = "OpenAI"
 
 
+# ------------------------------------------------------------------------------
 class TestWrapAnthropic:
     def test_returns_same_object(self):
         buf = io.StringIO()
         client = _MockAnthropicClient()
-        result = Shuntly.wrap(client, SinkStream(buf))
+        result = Shuntly.shunt(client, SinkStream(buf))
         assert result is client
 
     def test_records_call(self):
         buf = io.StringIO()
-        client = Shuntly.wrap(_MockAnthropicClient(), SinkStream(buf))
+        client = Shuntly.shunt(_MockAnthropicClient(), SinkStream(buf))
         resp = client.messages.create(model="claude-3", max_tokens=100)
         assert resp["id"] == "msg_fake"
 
@@ -69,7 +80,7 @@ class TestWrapAnthropic:
             raise RuntimeError("API down")
 
         client.messages.create = failing_create
-        Shuntly.wrap(client, SinkStream(buf))
+        Shuntly.shunt(client, SinkStream(buf))
 
         with pytest.raises(RuntimeError, match="API down"):
             client.messages.create(model="x")
@@ -82,7 +93,7 @@ class TestWrapAnthropic:
 class TestWrapOpenAI:
     def test_records_call(self):
         buf = io.StringIO()
-        client = Shuntly.wrap(_MockOpenAIClient(), SinkStream(buf))
+        client = Shuntly.shunt(_MockOpenAIClient(), SinkStream(buf))
         resp = client.chat.completions.create(model="gpt-4")
         assert resp["id"] == "chatcmpl_fake"
 
@@ -102,7 +113,7 @@ class TestWrapCustomMethods:
                     return "ok"
 
         client = MyClient()
-        Shuntly.wrap(client, SinkStream(buf), methods=["inner.call"])
+        Shuntly.shunt(client, SinkStream(buf), methods=["inner.call"])
         result = client.inner.call(prompt="hi")
         assert result == "ok"
 
@@ -117,4 +128,4 @@ class TestWrapUnknownClient:
             pass
 
         with pytest.raises(ValueError, match="Unknown client"):
-            Shuntly.wrap(Unknown(), SinkStream(io.StringIO()))
+            Shuntly.shunt(Unknown(), SinkStream(io.StringIO()))

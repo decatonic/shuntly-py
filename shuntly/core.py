@@ -10,7 +10,10 @@ from shuntly.sinks import Sink, SinkStream
 T = TypeVar("T")
 
 _METHOD_REGISTRY: dict[str, list[str]] = {
-    "anthropic.Anthropic": ["messages.create"],
+    "anthropic.Anthropic": [
+        "messages.create",
+        "messages.stream",
+    ],
     "openai.OpenAI": ["chat.completions.create"],
 }
 
@@ -36,8 +39,40 @@ class Shuntly:
         func = getattr(parent, attr)
         return func, parent, attr
 
+    @staticmethod
+    def _get_wrapper(
+        func,
+        client_name: str,
+        method: str,
+        sink: Sink,
+    ):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            t = time.perf_counter()
+            error = None
+            response = None
+            try:
+                response = func(*args, **kwargs)
+                return response
+            except Exception as exc:
+                error = f"{type(exc).__name__}: {exc}"
+                raise
+            finally:
+                duration_ms = (time.perf_counter() - t) * 1000
+                record = Record.build(
+                    client=client_name,
+                    method=method,
+                    request=kwargs,
+                    response=response,
+                    duration_ms=duration_ms,
+                    error=error,
+                )
+                sink.write(record)
+
+        return wrapper
+
     @classmethod
-    def wrap(
+    def shunt(
         cls,
         client: T,
         sink: Sink | None = None,
@@ -58,30 +93,7 @@ class Shuntly:
 
         for method in methods:
             func, parent, attr = cls._resolve_qualified(client, method)
-
-            @functools.wraps(func)
-            def wrapper(*args, **kwargs):
-                t = time.perf_counter()
-                error = None
-                response = None
-                try:
-                    response = func(*args, **kwargs)
-                    return response
-                except Exception as exc:
-                    error = f"{type(exc).__name__}: {exc}"
-                    raise
-                finally:
-                    duration_ms = (time.perf_counter() - t) * 1000
-                    record = Record.build(
-                        client=client_name,
-                        method=method,
-                        request=kwargs,
-                        response=response,
-                        duration_ms=duration_ms,
-                        error=error,
-                    )
-                    sink.write(record)
-
+            wrapper = cls._get_wrapper(func, client_name, method, sink)
             setattr(parent, attr, wrapper)
 
-        return client  # type: ignore[return-value]
+        return client
