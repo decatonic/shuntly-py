@@ -5,12 +5,19 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "shuntly"
 version = "0.1.0"
-description = "Monkey-patch LLM clients to record all I/O to configurable sinks"
+description = "A lightweight, unopinionated wiretap for LLM clients"
 requires-python = ">=3.11"
 license = "MIT"
 
 [project.optional-dependencies]
-dev = ["pytest", "anthropic", "openai"]
+dev = [
+    "pytest==9.0.2",
+    "anthropic==0.77.0",
+    "openai==2.16.0",
+    "ruff==0.15.0",
+    "mypy==1.19.1",
+    "nox==2025.11.12",
+    ]
 
 [tool.setuptools.packages.find]
 include = ["shuntly*"]
