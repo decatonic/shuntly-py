@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+import dataclasses
 import getpass
 import json
 import os
 import socket
 from datetime import UTC, datetime
 from typing import Any
-import dataclasses
+
 
 class Record:
     __slots__ = (
@@ -74,7 +75,7 @@ class Record:
     def _json_default(obj: Any) -> Any:
         # Pydantic v2 models (anthropic, openai SDKs): model_dump
         # Pydantic v1 / other dict-able objects: dict
-        for attr in ('model_dump', 'dict', 'to_dict'):
+        for attr in ("model_dump", "dict", "to_dict"):
             if func := getattr(obj, attr, None):
                 return func()
 
