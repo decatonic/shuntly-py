@@ -24,7 +24,7 @@ def do_clean(session: nox.Session) -> None:
 def do_test(session: nox.Session) -> None:
 
     fps = []
-    fps.append('test/unit')
+    fps.append("test/unit")
 
     warnings = "--warnings" in session.posargs
     w_flag = "--disable-pytest-warnings"

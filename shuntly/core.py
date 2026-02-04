@@ -23,9 +23,9 @@ class Shuntly:
 
     @staticmethod
     def _resolve_qualified(obj: object, method: str) -> tuple[object, str]:
-        '''
+        """
         Walk a qualified path like 'messages.create' and return (parent, attr_name). Must return parent and attr for subsequent re-assignment
-        '''
+        """
         parts = method.split(".")
         parent = obj
         for part in parts[:-1]:
