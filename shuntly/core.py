@@ -23,12 +23,18 @@ class Shuntly:
 
     @staticmethod
     def _resolve_qualified(obj: object, method: str) -> tuple[object, str]:
-        """Walk a qualified path like 'messages.create' and return (parent, attr_name)."""
+        '''
+        Walk a qualified path like 'messages.create' and return (parent, attr_name). Must return parent and attr for subsequent re-assignment
+        '''
         parts = method.split(".")
         parent = obj
         for part in parts[:-1]:
             parent = getattr(parent, part)
-        return parent, parts[-1]
+            if parent is None:
+                raise RuntimeError(f"Invalid method path: {method}")
+        attr = parts[-1]
+        func = getattr(parent, attr)
+        return func, parent, attr
 
     @classmethod
     def wrap(
@@ -51,12 +57,11 @@ class Shuntly:
                 )
 
         for method in methods:
-            parent, attr = cls._resolve_qualified(client, method)
-            func = getattr(parent, attr)
+            func, parent, attr = cls._resolve_qualified(client, method)
 
             @functools.wraps(func)
             def wrapper(*args, **kwargs):
-                t0 = time.perf_counter()
+                t = time.perf_counter()
                 error = None
                 response = None
                 try:
@@ -66,7 +71,7 @@ class Shuntly:
                     error = f"{type(exc).__name__}: {exc}"
                     raise
                 finally:
-                    duration_ms = (time.perf_counter() - t0) * 1000
+                    duration_ms = (time.perf_counter() - t) * 1000
                     record = Record.build(
                         client=client_name,
                         method=method,
