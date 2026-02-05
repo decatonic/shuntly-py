@@ -2,13 +2,12 @@ from __future__ import annotations
 
 import functools
 import time
-from typing import Any, Callable, TypeVar
+from typing import Any, TypeVar
 
 from shuntly.record import Record
 from shuntly.sinks import Sink, SinkStream
 
 TVClient = TypeVar("TVClient")
-TVFunc = TypeVar("TVFunc")
 
 
 _METHOD_REGISTRY: dict[str, list[str]] = {
@@ -29,7 +28,7 @@ class Shuntly:
     @staticmethod
     def _resolve_qualified(
         obj: Any, method: str
-    ) -> tuple[Callable[..., Any], Any, str]:
+    ) -> tuple[Any, Any, str]:
         """
         Walk a qualified path like 'messages.create' and return (parent, attr_name). Must return parent and attr for subsequent re-assignment
         """
@@ -41,15 +40,16 @@ class Shuntly:
                 raise RuntimeError(f"Invalid method path: {method}")
         attr = parts[-1]
         func = getattr(parent, attr)
+        # check that this is callable?
         return func, parent, attr
 
     @staticmethod
     def _get_wrapper(
-        func: TVFunc,
+        func: Any,
         client_name: str,
         method: str,
         sink: Sink,
-    ) -> TVFunc:
+    ) -> Any:
         @functools.wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
             t = time.perf_counter()
