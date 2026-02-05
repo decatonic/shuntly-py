@@ -16,7 +16,72 @@ _METHOD_REGISTRY: dict[str, list[str]] = {
         "messages.stream",
     ],
     "openai.OpenAI": ["chat.completions.create"],
+    "google.genai.Client": ["models.generate_content"],
+
 }
+
+
+class _StreamProxy:
+    """Wraps a streaming context manager to defer recording until the stream is consumed."""
+
+    __slots__ = (
+        "_cmanager",
+        "_client_name",
+        "_method",
+        "_request",
+        "_sink",
+        "_t_start",
+        "_stream",
+    )
+
+    def __init__(
+        self,
+        cmanager: Any,  # context manager
+        *,
+        client_name: str,
+        method: str,
+        request: dict,
+        sink: Sink,
+        t_start: float,
+    ):
+        self._cmanager = cmanager
+        self._client_name = client_name
+        self._method = method
+        self._request = request
+        self._sink = sink
+        self._t_start = t_start
+
+    def __enter__(self) -> Any:
+        self._stream = self._cmanager.__enter__()
+        return self._stream
+
+    def __exit__(
+        self,
+        exc_type: Any,
+        exc_val: Any,
+        exc_tb: Any,
+    ) -> Any:
+        error = None
+        response = None
+        try:
+            if exc_type is not None:
+                error = f"{exc_type.__name__}: {exc_val}"
+            elif hasattr(self._stream, "get_final_message"):
+                # this is specific to Anthropic
+                # https://platform.claude.com/docs/en/build-with-claude/streaming#get-the-final-message-without-handling-events
+                response = self._stream.get_final_message()
+            return self._cmanager.__exit__(exc_type, exc_val, exc_tb)
+        finally:
+            duration_ms = (time.perf_counter() - self._t_start) * 1000
+            record = Record.build(
+                client=self._client_name,
+                method=self._method,
+                request=self._request,
+                response=response,
+                duration_ms=duration_ms,
+                error=error,
+            )
+            self._sink.write(record)
 
 
 class Shuntly:
@@ -50,26 +115,46 @@ class Shuntly:
     ) -> Any:
         @functools.wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
-            t = time.perf_counter()
+            t_start = time.perf_counter()
             error = None
             response: Any = None
+            deferred = False
+
+            request: dict[str, Any]
+            if args:
+                request = {"args": list(args), **kwargs}
+            else:
+                request = kwargs
+
             try:
                 response = func(*args, **kwargs)
+                # Streaming context manager — defer recording until stream is consumed
+                if hasattr(response, "__enter__") and hasattr(response, "__exit__"):
+                    deferred = True
+                    return _StreamProxy(
+                        response,
+                        client_name=client_name,
+                        method=method,
+                        request=request,
+                        sink=sink,
+                        t_start=t_start,
+                    )
                 return response
             except Exception as exc:
                 error = f"{type(exc).__name__}: {exc}"
                 raise
             finally:
-                duration_ms = (time.perf_counter() - t) * 1000
-                record = Record.build(
-                    client=client_name,
-                    method=method,
-                    request=kwargs,
-                    response=response,
-                    duration_ms=duration_ms,
-                    error=error,
-                )
-                sink.write(record)
+                if not deferred:
+                    duration_ms = (time.perf_counter() - t_start) * 1000
+                    record = Record.build(
+                        client=client_name,
+                        method=method,
+                        request=request,
+                        response=response,
+                        duration_ms=duration_ms,
+                        error=error,
+                    )
+                    sink.write(record)
 
         return wrapper
 
@@ -81,7 +166,7 @@ class Shuntly:
         *,
         methods: list[str] | None = None,
     ) -> TVClient:
-        if sink is None: # default stderr output
+        if sink is None:  # default stderr output
             sink = SinkStream()
 
         client_name = cls._get_client_name(client)

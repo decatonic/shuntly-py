@@ -45,19 +45,34 @@ def test_wrap_captures_record():
     assert record["response"]["id"].startswith("msg_")
 
 
-# def test_wrap_captures_error():
-#     buf = io.StringIO()
-#     client = anthropic.Anthropic(api_key="sk-ant-INVALID")
-#     Shuntly.shunt(client, SinkStream(buf))
+def test_wrap_captures_stream():
+    buf = io.StringIO()
+    client = Shuntly.shunt(anthropic.Anthropic(api_key=_API_KEY), SinkStream(buf))
 
-#     with pytest.raises(anthropic.AuthenticationError):
-#         client.messages.create(
-#             model=_MODEL,
-#             max_tokens=1,
-#             messages=[{"role": "user", "content": "hi"}],
-#         )
+    chunks = []
+    with client.messages.stream(
+        model=_MODEL,
+        max_tokens=32,
+        messages=[{"role": "user", "content": "Reply with the four words: ping pong ping pong"}],
+    ) as stream:
+        for text in stream.text_stream:
+            chunks.append(text)
 
-#     record = json.loads(buf.getvalue().strip())
-#     assert record["error"] is not None
-#     assert "AuthenticationError" in record["error"]
-#     assert record["response"] is None
+    # stream yielded text chunks
+    full_text = "".join(chunks).lower()
+    valid = "ping pong ping pong"
+    assert full_text == valid
+
+    # record was captured on stream exit with the final message
+    record = json.loads(buf.getvalue().strip())
+    import ipdb; ipdb.set_trace()
+
+    assert record["client"] == "anthropic.Anthropic"
+    assert record["method"] == "messages.stream"
+    assert record["request"]["model"] == _MODEL
+    assert record["error"] is None
+    assert record["duration_ms"] > 0
+    assert record["response"]["id"].startswith("msg_")
+    assert record["response"]["stop_reason"] in ("end_turn", "max_tokens")
+    assert record["response"]['content'][0]['text'] == valid
+

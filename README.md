@@ -4,7 +4,7 @@ A lightweight wiretap for LLM SDKs: capture all requests and responses with a si
 
 Shuntly wraps LLM SDKs to record every request and response as JSON. Calling `Shuntly.shunt()` wraps and returns a client with its original interface and types preserved, permitting consistent IDE autocomplete and type checking. Shuntly provides a collection of configurable "sinks" to write records to stderr, files, named pipes, or any combination.
 
-While debugging LLM tooling, maybe you want to see exactly what is being sent and returned. When launching an agent, maybe you want to record every call to the LLM. Shuntly can capture it all without requiring network components, a web-based platform, or complicated logging infrastructure.
+While debugging LLM tooling, maybe you want to see exactly what is being sent and returned. When launching an agent, maybe you want to record every call to the LLM. Shuntly can capture it all without network components, a web-based platform, or complicated logging infrastructure.
 
 
 ## Install
@@ -15,7 +15,7 @@ pip install shuntly
 
 ## Integrate
 
-Given an LLM SDK (e.g. [`anthropic`](https://pypi.org/project/anthropic), [`openai`](https://pypi.org/project/openai])), simply call `Shuntly.shunt()` with the instantiated SDK class. The returned object has the same type and interface.
+Given an LLM SDK (e.g. [`anthropic`](https://pypi.org/project/anthropic), [`openai`](https://pypi.org/project/openai]), [`google-genai`](https://pypi.org/project/google-genai)), simply call `Shuntly.shunt()` with the instantiated SDK class. The returned object has the same type and interface.
 
 ```python
 from anthropic import Anthropic
@@ -137,6 +137,7 @@ Shuntly presently handles these clients:
 |--------|---------|---------|
 | `anthropic.Anthropic` | [`PyPI`](https://pypi.org/project/anthropic) | `messages.create`, `messages.stream` |
 | `openai.OpenAI` | [`PyPI`](https://pypi.org/project/openapi) | `chat.completions.create` |
+| `google.genai.Client` | [`PyPI`](https://pypi.org/project/google-genai) | `models.generate_content` |
 
 For anything else, method paths can be explicitly provided:
 
