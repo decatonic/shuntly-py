@@ -1,4 +1,4 @@
-# shuntly
+# Shuntly
 
 A lightweight wiretap for LLM SDKs: capture all requests and responses with a single line of code.
 
@@ -95,3 +95,10 @@ For anything else, method paths can be explicitly provided:
 ```python
 client = Shuntly.shunt(my_client, methods=["chat.send", "embeddings.create"])
 ```
+
+## What is New in Shuntly
+
+### 0.1.0
+
+Initial release.
+
