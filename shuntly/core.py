@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import functools
 import time
-from typing import TypeVar
+from typing import Any, Callable, TypeVar
 
 from shuntly.record import Record
 from shuntly.sinks import Sink, SinkStream
 
-T = TypeVar("T")
+TVClient = TypeVar("TVClient")
+TVFunc = TypeVar("TVFunc")
+
 
 _METHOD_REGISTRY: dict[str, list[str]] = {
     "anthropic.Anthropic": [
@@ -25,7 +27,9 @@ class Shuntly:
         return f"{cls.__module__}.{cls.__qualname__}"
 
     @staticmethod
-    def _resolve_qualified(obj: object, method: str) -> tuple[object, str]:
+    def _resolve_qualified(
+        obj: Any, method: str
+    ) -> tuple[Callable[..., Any], Any, str]:
         """
         Walk a qualified path like 'messages.create' and return (parent, attr_name). Must return parent and attr for subsequent re-assignment
         """
@@ -41,16 +45,16 @@ class Shuntly:
 
     @staticmethod
     def _get_wrapper(
-        func,
+        func: TVFunc,
         client_name: str,
         method: str,
         sink: Sink,
-    ):
+    ) -> TVFunc:
         @functools.wraps(func)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
             t = time.perf_counter()
             error = None
-            response = None
+            response: Any = None
             try:
                 response = func(*args, **kwargs)
                 return response
@@ -74,11 +78,11 @@ class Shuntly:
     @classmethod
     def shunt(
         cls,
-        client: T,
+        client: TVClient,
         sink: Sink | None = None,
         *,
         methods: list[str] | None = None,
-    ) -> T:
+    ) -> TVClient:
         if sink is None:
             sink = SinkStream()
 
@@ -87,8 +91,7 @@ class Shuntly:
         if methods is None:
             if not (methods := _METHOD_REGISTRY.get(client_name)):
                 raise ValueError(
-                    f"Unknown client {client_name!r}. "
-                    f"Pass methods=[...] to specify which methods to patch."
+                    f"Unknown client {client_name!r}. Pass methods=[...] to specify which methods to patch."
                 )
 
         for method in methods:

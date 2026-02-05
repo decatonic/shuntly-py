@@ -18,7 +18,7 @@ class Sink(ABC):
 
 
 class SinkStream(Sink):
-    def __init__(self, stream: IO[str] = None):
+    def __init__(self, stream: IO[str] | None = None):
         self._stream = stream or sys.stderr
 
     def write(self, record: Record) -> None:
