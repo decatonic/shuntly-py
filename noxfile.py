@@ -30,10 +30,7 @@ def do_test(session: nox.Session) -> None:
     w_flag = "--disable-pytest-warnings"
     cmd = f"pytest -s --tb=native {w_flag if warnings else ''} {' '.join(fps)}"
 
-    session.run(
-        *cmd.split(" "),
-        external=True,
-    )
+    session.run(*cmd.split(" "), external=True)
 
 
 def do_lint(session: nox.Session) -> None:
