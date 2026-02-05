@@ -5,7 +5,7 @@ import getpass
 import json
 import os
 import socket
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from typing import Any
 
 
@@ -59,7 +59,7 @@ class Record:
         error: str | None = None,
     ) -> Record:
         return Record(
-            timestamp=datetime.now(UTC),
+            timestamp=datetime.now(timezone.utc),
             hostname=socket.gethostname(),
             user=getpass.getuser(),
             pid=os.getpid(),
