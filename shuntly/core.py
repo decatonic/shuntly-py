@@ -26,9 +26,7 @@ class Shuntly:
         return f"{cls.__module__}.{cls.__qualname__}"
 
     @staticmethod
-    def _resolve_qualified(
-        obj: Any, method: str
-    ) -> tuple[Any, Any, str]:
+    def _resolve_qualified(obj: Any, method: str) -> tuple[Any, Any, str]:
         """
         Walk a qualified path like 'messages.create' and return (parent, attr_name). Must return parent and attr for subsequent re-assignment
         """
