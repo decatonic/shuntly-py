@@ -81,7 +81,7 @@ class Shuntly:
         *,
         methods: list[str] | None = None,
     ) -> TVClient:
-        if sink is None:
+        if sink is None: # default stderr output
             sink = SinkStream()
 
         client_name = cls._get_client_name(client)
