@@ -21,7 +21,7 @@ from shuntly import Shuntly
 # By default, all calls and responses are output to stderr
 client = Shuntly.shunt(Anthropic())
 
-# Use same client interface
+# Use the same client interface
 message = client.messages.create(
     model="claude-sonnet-4-20250514",
     max_tokens=1024,
@@ -31,9 +31,6 @@ message = client.messages.create(
 
 Each call writes JSON like:
 
-```json
-{"timestamp": "2025-01-15T12:00:00+00:00", "hostname": "dev1", "user": "alice", "pid": 42, "client": "anthropic.Anthropic", "method": "messages.create", "request": {"model": "claude-sonnet-4-20250514", "max_tokens": 1024, "messages": [{"role": "user", "content": "Hello"}]}, "response": {"id": "msg_...", "content": [{"type": "text", "text": "Hi!"}]}, "duration_ms": 823.4, "error": null}
-```
 
 ```json
 {
@@ -52,7 +49,7 @@ Each call writes JSON like:
 
 ## Sinks
 
-Sink subclases permit writing JOSN records to any destination.
+Sink subclases permit writing JSON records to any destination.
 
 ```python
 from shuntly import Shuntly, SinkStream, SinkFile, SinkPipe, SinkMany
