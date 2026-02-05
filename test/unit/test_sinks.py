@@ -3,7 +3,7 @@ import json
 import os
 import tempfile
 
-from shuntly import Record, SinkFile, SinkMulti, SinkStream
+from shuntly import Record, SinkFile, SinkMany, SinkStream
 
 
 def _make_record(**overrides) -> Record:
@@ -70,7 +70,7 @@ class TestSinkMulti:
     def test_fans_out(self):
         buf1 = io.StringIO()
         buf2 = io.StringIO()
-        sink = SinkMulti([SinkStream(buf1), SinkStream(buf2)])
+        sink = SinkMany([SinkStream(buf1), SinkStream(buf2)])
         sink.write(_make_record())
 
         assert json.loads(buf1.getvalue().strip())["client"] == "test.Client"
@@ -82,7 +82,7 @@ class TestSinkMulti:
         try:
             file_sink = SinkFile(path)
             buf = io.StringIO()
-            multi = SinkMulti([SinkStream(buf), file_sink])
+            multi = SinkMany([SinkStream(buf), file_sink])
             multi.write(_make_record())
             multi.close()
             # file sink should be closed

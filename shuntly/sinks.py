@@ -72,7 +72,7 @@ class SinkPipe(Sink):
             self._file = None
 
 
-class SinkMulti(Sink):
+class SinkMany(Sink):
     def __init__(self, sinks: list[Sink]):
         self._sinks = sinks
 
