@@ -15,8 +15,6 @@ pytestmark = pytest.mark.skipif(not _API_KEY, reason="ANTHROPIC_API_KEY not set"
 
 def test_wrap_captures_record():
     buf = io.StringIO()
-    # alt_client = anthropic.Anthropic(api_key=_API_KEY)
-
     client = Shuntly.shunt(anthropic.Anthropic(api_key=_API_KEY), SinkStream(buf))
 
     resp = client.messages.create(
@@ -25,16 +23,14 @@ def test_wrap_captures_record():
         messages=[{"role": "user", "content": "Reply with the single word: pong"}],
     )
 
-    # response came through unmodified
+    valid = "pong"
     assert resp.id.startswith("msg_")
     assert resp.model.startswith("claude")
     assert resp.stop_reason in ("end_turn", "max_tokens")
     text = resp.content[0].text.lower()
-    assert "pong" in text
+    assert text == valid
 
-    # record was captured
     record = json.loads(buf.getvalue().strip())
-    # import ipdb; ipdb.set_trace()
 
     assert record["client"] == "anthropic.Anthropic"
     assert record["method"] == "messages.create"
@@ -43,6 +39,7 @@ def test_wrap_captures_record():
     assert record["error"] is None
     assert record["duration_ms"] > 0
     assert record["response"]["id"].startswith("msg_")
+    assert record["response"]["content"][0]["text"] == valid
 
 
 def test_wrap_captures_stream():
@@ -53,7 +50,12 @@ def test_wrap_captures_stream():
     with client.messages.stream(
         model=_MODEL,
         max_tokens=32,
-        messages=[{"role": "user", "content": "Reply with the four words: ping pong ping pong"}],
+        messages=[
+            {
+                "role": "user",
+                "content": "Reply with the four words: ping pong ping pong",
+            }
+        ],
     ) as stream:
         for text in stream.text_stream:
             chunks.append(text)
@@ -65,7 +67,6 @@ def test_wrap_captures_stream():
 
     # record was captured on stream exit with the final message
     record = json.loads(buf.getvalue().strip())
-    import ipdb; ipdb.set_trace()
 
     assert record["client"] == "anthropic.Anthropic"
     assert record["method"] == "messages.stream"
@@ -74,5 +75,4 @@ def test_wrap_captures_stream():
     assert record["duration_ms"] > 0
     assert record["response"]["id"].startswith("msg_")
     assert record["response"]["stop_reason"] in ("end_turn", "max_tokens")
-    assert record["response"]['content'][0]['text'] == valid
-
+    assert record["response"]["content"][0]["text"] == valid

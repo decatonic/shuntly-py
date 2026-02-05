@@ -16,8 +16,7 @@ _METHOD_REGISTRY: dict[str, list[str]] = {
         "messages.stream",
     ],
     "openai.OpenAI": ["chat.completions.create"],
-    "google.genai.Client": ["models.generate_content"],
-
+    "google.genai.client.Client": ["models.generate_content"],
 }
 
 
@@ -40,7 +39,7 @@ class _StreamProxy:
         *,
         client_name: str,
         method: str,
-        request: dict,
+        request: dict[str, Any],
         sink: Sink,
         t_start: float,
     ):
