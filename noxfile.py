@@ -1,5 +1,4 @@
 import sys
-import typing as tp
 
 import nox
 
@@ -73,16 +72,6 @@ def clean(session):
 @nox.session(python=False)
 def test(session):
     do_test(session)
-
-
-@nox.session(python=False)
-def test_typing(session):
-    do_test_typing(session)
-
-
-@nox.session(python=False)
-def test_ex(session):
-    do_test_ex(session)
 
 
 @nox.session(python=False)

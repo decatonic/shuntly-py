@@ -15,7 +15,7 @@ pytestmark = pytest.mark.skipif(not _API_KEY, reason="ANTHROPIC_API_KEY not set"
 
 def test_wrap_captures_record():
     buf = io.StringIO()
-    alt_client = anthropic.Anthropic(api_key=_API_KEY)
+    # alt_client = anthropic.Anthropic(api_key=_API_KEY)
 
     client = Shuntly.shunt(anthropic.Anthropic(api_key=_API_KEY), SinkStream(buf))
 
