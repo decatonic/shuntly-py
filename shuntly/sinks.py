@@ -49,7 +49,12 @@ class SinkFile(Sink):
 
 
 class SinkPipe(Sink):
-    """A Sink that writes to a named pipe. Note that this is designed to fail gracefully if the reader does not connect, or disconnects, from the pipe."""
+    """A Sink that writes to a named pipe.
+
+    Opens non-blocking to avoid hanging if no reader is connected, but writes
+    in a loop to ensure complete records. Fails gracefully if the reader
+    disconnects.
+    """
 
     def __init__(self, path: str):
         self._path = path
@@ -75,15 +80,24 @@ class SinkPipe(Sink):
 
     def write(self, record: ShuntlyRecord) -> None:
         fd = self._ensure_open()
-        if fd is not None:
+        if fd is None:
+            return
+
+        data = (record.to_json() + '\n').encode()
+        offset = 0
+        while offset < len(data):
             try:
-                os.write(fd, (record.to_json() + '\n').encode())
+                written = os.write(fd, data[offset:])
+                offset += written
             except OSError as e:
-                if e.errno in (errno.EAGAIN, errno.EPIPE):
-                    # Buffer full or reader disconnected — drop it
+                if e.errno == errno.EAGAIN:
+                    # Buffer full — spin until space available
+                    continue
+                if e.errno == errno.EPIPE:
+                    # Reader disconnected
                     self.close()
-                else:
-                    raise
+                    return
+                raise
 
     def close(self) -> None:
         if self._fd is not None:
