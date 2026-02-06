@@ -3,7 +3,7 @@
 | | CI | Package |
 |---|---|---|
 | Python | [![CI](https://img.shields.io/github/actions/workflow/status/shuntly/shuntly-py/ci.yml?branch=default&label=CI&logo=Github)](https://github.com/shuntly/shuntly-py/actions/workflows/ci.yml) | [![PyPI](https://img.shields.io/pypi/v/shuntly?label=PyPI&logo=pypi)](https://pypi.org/project/shuntly/) |
-| TypeScript | [![CI](https://img.shields.io/github/actions/workflow/status/shuntly/shuntly-ts/ci.yml?branch=default&label=CI&logo=Github)](https://github.com/shuntly/shuntly-ts/actions/workflows/ci.yml) | [![NPM](https://img.shields.io/npm/v/shuntly?label=NPM&logo=npm)](https://www.npmjs.com/package/shuntly) |
+| TypeScript | [![CI](https://img.shields.io/github/actions/workflow/status/shuntly/shuntly-ts/ci.yml?branch=main&label=CI&logo=Github)](https://github.com/shuntly/shuntly-ts/actions/workflows/ci.yml) | [![NPM](https://img.shields.io/npm/v/shuntly?label=NPM&logo=npm)](https://www.npmjs.com/package/shuntly) |
 
 
 A lightweight wiretap for LLM SDKs: capture all requests and responses with a single line of code.
