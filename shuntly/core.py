@@ -15,12 +15,44 @@ _METHOD_REGISTRY: dict[str, list[str]] = {
         'messages.create',
         'messages.stream',
     ],
-    'openai.OpenAI': ['chat.completions.create'],
-    'google.genai.client.Client': ['models.generate_content'],
+    'openai.OpenAI': [
+        'chat.completions.create',
+        'chat.completions.stream',
+    ],
+    'google.genai.client.Client': [
+        'models.generate_content',
+    ],
 }
 
 
-class _StreamProxy:
+class StreamWrapper:
+    """
+    Wraps a stream to accumulate chunks while proxying all other access to the original.
+    """
+
+    __slots__ = ('_stream', '_chunks')
+
+    def __init__(self, stream: Any):
+        self._stream = stream
+        self._chunks: list[Any] = []
+
+    def __iter__(self) -> 'StreamWrapper':
+        return self
+
+    def __next__(self) -> Any:
+        chunk = next(self._stream)
+        self._chunks.append(chunk)
+        return chunk
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._stream, name)
+
+    @property
+    def chunks(self) -> list[Any]:
+        return self._chunks
+
+
+class StreamProxy:
     """Wraps a streaming context manager to defer recording until the stream is consumed."""
 
     __slots__ = (
@@ -30,7 +62,7 @@ class _StreamProxy:
         '_request',
         '_sink',
         '_t_start',
-        '_stream',
+        '_wrapper',
     )
 
     def __init__(
@@ -49,10 +81,12 @@ class _StreamProxy:
         self._request = request
         self._sink = sink
         self._t_start = t_start
+        self._wrapper: StreamWrapper | None = None
 
-    def __enter__(self) -> Any:
-        self._stream = self._cmanager.__enter__()
-        return self._stream
+    def __enter__(self) -> StreamWrapper:
+        stream = self._cmanager.__enter__()
+        self._wrapper = StreamWrapper(stream)
+        return self._wrapper
 
     def __exit__(
         self,
@@ -61,14 +95,12 @@ class _StreamProxy:
         exc_tb: Any,
     ) -> Any:
         error = None
-        response = None
+        response: Any = None
         try:
             if exc_type is not None:
                 error = f'{exc_type.__name__}: {exc_val}'
-            elif hasattr(self._stream, 'get_final_message'):
-                # this is specific to Anthropic
-                # https://platform.claude.com/docs/en/build-with-claude/streaming#get-the-final-message-without-handling-events
-                response = self._stream.get_final_message()
+            else:
+                response = self._wrapper.chunks if self._wrapper else None
             return self._cmanager.__exit__(exc_type, exc_val, exc_tb)
         finally:
             duration_ms = (time.perf_counter() - self._t_start) * 1000
@@ -84,6 +116,8 @@ class _StreamProxy:
 
 
 class Shuntly:
+    """The  `shunt()` wrapper interface."""
+
     @staticmethod
     def _get_client_name(client: object) -> str:
         cls = client.__class__
@@ -130,7 +164,7 @@ class Shuntly:
                 # Streaming context manager — defer recording until stream is consumed
                 if hasattr(response, '__enter__') and hasattr(response, '__exit__'):
                     deferred = True
-                    return _StreamProxy(
+                    return StreamProxy(
                         response,
                         client_name=client_name,
                         method=method,
