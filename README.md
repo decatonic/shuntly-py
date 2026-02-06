@@ -147,6 +147,13 @@ client = Shuntly.shunt(my_client, methods=["chat.send", "embeddings.create"])
 
 ## What is New in Shuntly
 
+### 0.2.0
+
+Fully tested and integrated support for OpenAI and Google SDKs.
+
+`SinkPipe` is now interruptible.
+
+
 ### 0.1.0
 
 Initial release.
