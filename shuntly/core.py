@@ -17,7 +17,6 @@ _METHOD_REGISTRY: dict[str, list[str]] = {
     ],
     'openai.OpenAI': [
         'chat.completions.create',
-        'chat.completions.stream',
     ],
     'google.genai.client.Client': [
         'models.generate_content',
