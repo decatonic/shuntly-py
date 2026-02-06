@@ -6,16 +6,16 @@ from shuntly import Record
 
 def test_build_populates_fields():
     rec = Record.build(
-        client="anthropic.Anthropic",
-        method="messages.create",
-        request={"model": "claude-3"},
-        response={"id": "msg_123"},
+        client='anthropic.Anthropic',
+        method='messages.create',
+        request={'model': 'claude-3'},
+        response={'id': 'msg_123'},
         duration_ms=42.0,
     )
-    assert rec.client == "anthropic.Anthropic"
-    assert rec.method == "messages.create"
-    assert rec.request == {"model": "claude-3"}
-    assert rec.response == {"id": "msg_123"}
+    assert rec.client == 'anthropic.Anthropic'
+    assert rec.method == 'messages.create'
+    assert rec.request == {'model': 'claude-3'}
+    assert rec.response == {'id': 'msg_123'}
     assert rec.duration_ms == 42.0
     assert rec.error is None
     assert isinstance(rec.timestamp, datetime)
@@ -26,33 +26,33 @@ def test_build_populates_fields():
 
 def test_build_with_error():
     rec = Record.build(
-        client="openai.OpenAI",
-        method="chat.completions.create",
+        client='openai.OpenAI',
+        method='chat.completions.create',
         request={},
         response=None,
         duration_ms=1.0,
-        error="ValueError: bad input",
+        error='ValueError: bad input',
     )
-    assert rec.error == "ValueError: bad input"
+    assert rec.error == 'ValueError: bad input'
     assert rec.response is None
 
 
 def test_to_json_roundtrip():
     rec = Record.build(
-        client="test.Client",
-        method="do.thing",
-        request={"a": 1},
-        response={"b": 2},
+        client='test.Client',
+        method='do.thing',
+        request={'a': 1},
+        response={'b': 2},
         duration_ms=10.5,
     )
     data = json.loads(rec.to_json())
-    assert data["client"] == "test.Client"
-    assert data["method"] == "do.thing"
-    assert data["request"] == {"a": 1}
-    assert data["response"] == {"b": 2}
-    assert data["duration_ms"] == 10.5
-    assert data["error"] is None
-    assert "timestamp" in data
-    assert "hostname" in data
-    assert "user" in data
-    assert "pid" in data
+    assert data['client'] == 'test.Client'
+    assert data['method'] == 'do.thing'
+    assert data['request'] == {'a': 1}
+    assert data['response'] == {'b': 2}
+    assert data['duration_ms'] == 10.5
+    assert data['error'] is None
+    assert 'timestamp' in data
+    assert 'hostname' in data
+    assert 'user' in data
+    assert 'pid' in data

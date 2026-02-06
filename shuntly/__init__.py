@@ -3,11 +3,11 @@ from shuntly.record import Record
 from shuntly.sinks import Sink, SinkFile, SinkMany, SinkPipe, SinkStream
 
 __all__ = [
-    "Shuntly",
-    "Record",
-    "Sink",
-    "SinkFile",
-    "SinkMany",
-    "SinkPipe",
-    "SinkStream",
+    'Shuntly',
+    'Record',
+    'Sink',
+    'SinkFile',
+    'SinkMany',
+    'SinkPipe',
+    'SinkStream',
 ]

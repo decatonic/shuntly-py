@@ -23,7 +23,7 @@ class SinkStream(Sink):
         self._stream = stream or sys.stderr
 
     def write(self, record: Record) -> None:
-        self._stream.write(record.to_json() + "\n")
+        self._stream.write(record.to_json() + '\n')
         self._stream.flush()
 
 
@@ -34,12 +34,12 @@ class SinkFile(Sink):
 
     def _ensure_open(self) -> IO[str]:
         if self._file is None:
-            self._file = open(self._path, "a")
+            self._file = open(self._path, 'a')
         return self._file
 
     def write(self, record: Record) -> None:
         f = self._ensure_open()
-        f.write(record.to_json() + "\n")
+        f.write(record.to_json() + '\n')
         f.flush()
 
     def close(self) -> None:
@@ -49,8 +49,8 @@ class SinkFile(Sink):
 
 
 class SinkPipe(Sink):
-    '''A Sink that writes to a named pipe. Note that this is designed to fail gracefully if the reader does not connect, or disconnects, from the pipe.
-    '''
+    """A Sink that writes to a named pipe. Note that this is designed to fail gracefully if the reader does not connect, or disconnects, from the pipe."""
+
     def __init__(self, path: str):
         self._path = path
         self._fd: int | None = None
@@ -62,7 +62,7 @@ class SinkPipe(Sink):
         if not os.path.exists(self._path):
             os.mkfifo(self._path)
         elif not stat.S_ISFIFO(os.stat(self._path).st_mode):
-            raise ValueError(f"{self._path} exists and is not a FIFO")
+            raise ValueError(f'{self._path} exists and is not a FIFO')
 
         try:
             self._fd = os.open(self._path, os.O_WRONLY | os.O_NONBLOCK)
@@ -77,7 +77,7 @@ class SinkPipe(Sink):
         fd = self._ensure_open()
         if fd is not None:
             try:
-                os.write(fd, (record.to_json() + "\n").encode())
+                os.write(fd, (record.to_json() + '\n').encode())
             except OSError as e:
                 if e.errno in (errno.EAGAIN, errno.EPIPE):
                     # Buffer full or reader disconnected — drop it

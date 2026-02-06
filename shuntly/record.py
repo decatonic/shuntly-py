@@ -11,16 +11,16 @@ from typing import Any
 
 class Record:
     __slots__ = (
-        "timestamp",
-        "hostname",
-        "user",
-        "pid",
-        "client",
-        "method",
-        "request",
-        "response",
-        "duration_ms",
-        "error",
+        'timestamp',
+        'hostname',
+        'user',
+        'pid',
+        'client',
+        'method',
+        'request',
+        'response',
+        'duration_ms',
+        'error',
     )
 
     def __init__(
@@ -75,7 +75,7 @@ class Record:
     def _json_default(obj: Any) -> Any:
         # Pydantic v2 models (anthropic, openai SDKs): model_dump
         # Pydantic v1 / other dict-able objects: dict
-        for attr in ("model_dump", "dict", "to_dict"):
+        for attr in ('model_dump', 'dict', 'to_dict'):
             if func := getattr(obj, attr, None):
                 return func()
 
