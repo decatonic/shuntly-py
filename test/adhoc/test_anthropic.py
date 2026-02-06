@@ -15,7 +15,7 @@ pytestmark = pytest.mark.skipif(not _API_KEY, reason='ANTHROPIC_API_KEY not set'
 
 def test_wrap_captures_record():
     buf = io.StringIO()
-    client = Shuntly.shunt(anthropic.Anthropic(api_key=_API_KEY), SinkStream(buf))
+    client = shunt(anthropic.Anthropic(api_key=_API_KEY), SinkStream(buf))
 
     resp = client.messages.create(
         model=_MODEL,
@@ -44,7 +44,7 @@ def test_wrap_captures_record():
 
 def test_wrap_captures_stream():
     buf = io.StringIO()
-    client = Shuntly.shunt(anthropic.Anthropic(api_key=_API_KEY), SinkStream(buf))
+    client = shunt(anthropic.Anthropic(api_key=_API_KEY), SinkStream(buf))
 
     chunks = []
     with client.messages.stream(

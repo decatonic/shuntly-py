@@ -2,9 +2,9 @@
 
 A lightweight wiretap for LLM SDKs: capture all requests and responses with a single line of code.
 
-Shuntly wraps LLM SDKs to record every request and response as JSON. Calling `Shuntly.shunt()` wraps and returns a client with its original interface and types preserved, permitting consistent IDE autocomplete and type checking. Shuntly provides a collection of configurable "sinks" to write records to stderr, files, named pipes, or any combination.
+Shuntly wraps LLM SDKs to record every request and response as JSON. Calling `shunt()` wraps and returns a client with its original interface and types preserved, permitting consistent IDE autocomplete and type checking. Shuntly provides a collection of configurable "sinks" to write records to stderr, files, named pipes, or any combination.
 
-While debugging LLM tooling, maybe you want to see exactly what is being sent and returned. When launching an agent, maybe you want to record every call to the LLM. Shuntly can capture it all without network components, a web-based platform, or complicated logging infrastructure.
+While debugging LLM tooling, maybe you want to see exactly what is being sent and returned. When launching an agent, maybe you want to record every call to the LLM. Shuntly can capture it all without TLS interception, a web-based platform, or complicated logging infrastructure.
 
 
 ## Install
@@ -15,14 +15,14 @@ pip install shuntly
 
 ## Integrate
 
-Given an LLM SDK (e.g. [`anthropic`](https://pypi.org/project/anthropic), [`openai`](https://pypi.org/project/openai]), [`google-genai`](https://pypi.org/project/google-genai)), simply call `Shuntly.shunt()` with the instantiated SDK class. The returned object has the same type and interface.
+Given an LLM SDK (e.g. [`anthropic`](https://pypi.org/project/anthropic), [`openai`](https://pypi.org/project/openai]), [`google-genai`](https://pypi.org/project/google-genai)), simply call `shunt()` with the instantiated SDK class. The returned object has the same type and interface.
 
 ```python
 from anthropic import Anthropic
-from shuntly import Shuntly
+from shuntly import shunt
 
 # Without providing a sink Shuntly output goes to stderr
-client = Shuntly.shunt(Anthropic(api_key=API_KEY))
+client = shunt(Anthropic(api_key=API_KEY))
 
 # Now use the client as before
 message = client.messages.create(
@@ -59,8 +59,8 @@ Shuntly JSON output can be streamed or read with a JSON viewer like [`fx`](https
 Shuntly output, by default, goes to `stderr`; this is equivalent to providing a `SinkStream` to `shunt()`:
 
 ```python
-from shuntly import Shuntly, SinkStream
-client = Shuntly.shunt(Anthropic(api_key=API_KEY), SinkStream())
+from shuntly import shunt, SinkStream
+client = shunt(Anthropic(api_key=API_KEY), SinkStream())
 ```
 
 Given a `command`, you can view Shuntly `stderr` output in `fx` with the following:
@@ -75,8 +75,8 @@ $ command 2>&1 >/dev/null | fx
 To view Shuntly output via a named pipe in another terminal, the `SinkPipe` sink can be used. First, name the pipe when providing `SinkPipe` to `shunt()`:
 
 ```python
-from shuntly import Shuntly, SinkPipe
-client = Shuntly.shunt(Anthropic(api_key=API_KEY), SinkPipe('/tmp/shuntly.fifo'))
+from shuntly import shunt, SinkPipe
+client = shunt(Anthropic(api_key=API_KEY), SinkPipe('/tmp/shuntly.fifo'))
 ```
 
 Then, in a terminal to view Shuntly output, create the named pipe and provide it to `fx`
@@ -93,8 +93,8 @@ Then, in another terminal, launch your command.
 To store Shuntly output in a file, the `SinkFile` sink can be used. Name the file when providing `SinkFile` to `shunt()`:
 
 ```python
-from shuntly import Shuntly, SinkFile
-client = Shuntly.shunt(Anthropic(api_key=API_KEY), SinkFile('/tmp/shuntly.jsonl'))
+from shuntly import shunt, SinkFile
+client = shunt(Anthropic(api_key=API_KEY), SinkFile('/tmp/shuntly.jsonl'))
 ```
 
 Then, after your command is complete, view the file:
@@ -108,9 +108,9 @@ $ fx /tmp/shuntly.jsonl
 Using `SinkMany`, multiple sinks can be written to simultaneously.
 
 ```python
-from shuntly import Shuntly, SinkStream, SinkFile, SinkMany
+from shuntly import shunt, SinkStream, SinkFile, SinkMany
 
-client = Shuntly.shunt(Anthropic(), SinkMany([
+client = shunt(Anthropic(), SinkMany([
     SinkStream(),
     SinkFile('/tmp/shuntly.jsonl'),
 ]))
@@ -121,10 +121,10 @@ client = Shuntly.shunt(Anthropic(), SinkMany([
 Custom sinks can be implemented by subclassing `Sink` and implementing `write()`:
 
 ```python
-from shuntly import Sink, Record
+from shuntly import Sink, ShuntlyRecord
 
 class SinkPrint(Sink):
-    def write(self, record: Record) -> None:
+    def write(self, record: ShuntlyRecord) -> None:
         print(record.client, record.method, record.duration_ms)
 ```
 
@@ -142,10 +142,17 @@ Shuntly presently handles these clients:
 For anything else, method paths can be explicitly provided:
 
 ```python
-client = Shuntly.shunt(my_client, methods=["chat.send", "embeddings.create"])
+client = shunt(my_client, methods=["chat.send", "embeddings.create"])
 ```
 
 ## What is New in Shuntly
+
+### 0.3.0
+
+Renamed `Record` to `ShuntlyRecord`.
+
+Export `shunt()` without `Shuntly` class.
+
 
 ### 0.2.0
 

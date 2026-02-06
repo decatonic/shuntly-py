@@ -16,7 +16,7 @@ pytestmark = pytest.mark.skipif(not _API_KEY, reason='GEMINI_API_KEY not set')
 def test_wrap_captures_record():
     buf = io.StringIO()
     client = genai.Client(api_key=_API_KEY)
-    Shuntly.shunt(client, SinkStream(buf), methods=['models.generate_content'])
+    shunt(client, SinkStream(buf), methods=['models.generate_content'])
 
     resp = client.models.generate_content(
         model=_MODEL,

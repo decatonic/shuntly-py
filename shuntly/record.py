@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 
-class Record:
+class ShuntlyRecord:
     __slots__ = (
         'timestamp',
         'hostname',
@@ -57,8 +57,8 @@ class Record:
         response: Any,
         duration_ms: float,
         error: str | None = None,
-    ) -> Record:
-        return Record(
+    ) -> ShuntlyRecord:
+        return ShuntlyRecord(
             timestamp=datetime.now(timezone.utc),
             hostname=socket.gethostname(),
             user=getpass.getuser(),

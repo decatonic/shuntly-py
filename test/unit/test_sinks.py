@@ -3,10 +3,10 @@ import json
 import os
 import tempfile
 
-from shuntly import Record, SinkFile, SinkMany, SinkStream
+from shuntly import ShuntlyRecord, SinkFile, SinkMany, SinkStream
 
 
-def _make_record(**overrides) -> Record:
+def _make_record(**overrides) -> ShuntlyRecord:
     defaults = dict(
         client='test.Client',
         method='do.thing',
@@ -15,7 +15,7 @@ def _make_record(**overrides) -> Record:
         duration_ms=5.0,
     )
     defaults.update(overrides)
-    return Record.build(**defaults)
+    return ShuntlyRecord.build(**defaults)
 
 
 class TestSinkStream:

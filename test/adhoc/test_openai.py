@@ -15,7 +15,7 @@ pytestmark = pytest.mark.skipif(not _API_KEY, reason='OPENAI_API_KEY nxot set')
 
 def test_wrap_captures_record():
     buf = io.StringIO()
-    client = Shuntly.shunt(openai.OpenAI(api_key=_API_KEY), SinkStream(buf))
+    client = shunt(openai.OpenAI(api_key=_API_KEY), SinkStream(buf))
 
     resp = client.chat.completions.create(
         model=_MODEL,
@@ -41,7 +41,7 @@ def test_wrap_captures_record():
 
 def test_wrap_captures_stream():
     buf = io.StringIO()
-    client = Shuntly.shunt(openai.OpenAI(api_key=_API_KEY), SinkStream(buf))
+    client = shunt(openai.OpenAI(api_key=_API_KEY), SinkStream(buf))
 
     chunks = []
     with client.chat.completions.create(

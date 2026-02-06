@@ -3,7 +3,7 @@ import json
 
 import pytest
 
-from shuntly import Shuntly, SinkStream
+from shuntly import shunt, SinkStream
 
 # ------------------------------------------------------------------------------
 # anthropic
@@ -55,12 +55,12 @@ class TestWrapAnthropic:
     def test_returns_same_object(self):
         buf = io.StringIO()
         client = _MockAnthropicClient()
-        result = Shuntly.shunt(client, SinkStream(buf))
+        result = shunt(client, SinkStream(buf))
         assert result is client
 
     def test_records_call(self):
         buf = io.StringIO()
-        client = Shuntly.shunt(_MockAnthropicClient(), SinkStream(buf))
+        client = shunt(_MockAnthropicClient(), SinkStream(buf))
         resp = client.messages.create(model='claude-3', max_tokens=100)
         assert resp['id'] == 'msg_fake'
 
@@ -80,7 +80,7 @@ class TestWrapAnthropic:
             raise RuntimeError('API down')
 
         client.messages.create = failing_create
-        Shuntly.shunt(client, SinkStream(buf))
+        shunt(client, SinkStream(buf))
 
         with pytest.raises(RuntimeError, match='API down'):
             client.messages.create(model='x')
@@ -93,7 +93,7 @@ class TestWrapAnthropic:
 class TestWrapOpenAI:
     def test_records_call(self):
         buf = io.StringIO()
-        client = Shuntly.shunt(_MockOpenAIClient(), SinkStream(buf))
+        client = shunt(_MockOpenAIClient(), SinkStream(buf))
         resp = client.chat.completions.create(model='gpt-4')
         assert resp['id'] == 'chatcmpl_fake'
 
@@ -113,7 +113,7 @@ class TestWrapCustomMethods:
                     return 'ok'
 
         client = MyClient()
-        Shuntly.shunt(client, SinkStream(buf), methods=['inner.call'])
+        shunt(client, SinkStream(buf), methods=['inner.call'])
         result = client.inner.call(prompt='hi')
         assert result == 'ok'
 
@@ -128,4 +128,4 @@ class TestWrapUnknownClient:
             pass
 
         with pytest.raises(ValueError, match='Unknown client'):
-            Shuntly.shunt(Unknown(), SinkStream(io.StringIO()))
+            shunt(Unknown(), SinkStream(io.StringIO()))

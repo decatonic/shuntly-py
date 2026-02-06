@@ -4,7 +4,7 @@ import functools
 import time
 from typing import Any, TypeVar
 
-from shuntly.record import Record
+from shuntly.record import ShuntlyRecord
 from shuntly.sinks import Sink, SinkStream
 
 TVClient = TypeVar('TVClient')
@@ -103,7 +103,7 @@ class StreamProxy:
             return self._cmanager.__exit__(exc_type, exc_val, exc_tb)
         finally:
             duration_ms = (time.perf_counter() - self._t_start) * 1000
-            record = Record.build(
+            record = ShuntlyRecord.build(
                 client=self._client_name,
                 method=self._method,
                 request=self._request,
@@ -178,7 +178,7 @@ class Shuntly:
             finally:
                 if not deferred:
                     duration_ms = (time.perf_counter() - t_start) * 1000
-                    record = Record.build(
+                    record = ShuntlyRecord.build(
                         client=client_name,
                         method=method,
                         request=request,
@@ -215,3 +215,7 @@ class Shuntly:
             setattr(parent, attr, wrapper)
 
         return client
+
+
+shunt = Shuntly.shunt
+

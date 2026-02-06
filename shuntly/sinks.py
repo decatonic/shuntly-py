@@ -7,12 +7,12 @@ import sys
 from abc import ABC, abstractmethod
 from typing import IO
 
-from shuntly.record import Record
+from shuntly.record import ShuntlyRecord
 
 
 class Sink(ABC):
     @abstractmethod
-    def write(self, record: Record) -> None: ...
+    def write(self, record: ShuntlyRecord) -> None: ...
 
     def close(self) -> None:
         pass
@@ -22,7 +22,7 @@ class SinkStream(Sink):
     def __init__(self, stream: IO[str] | None = None):
         self._stream = stream or sys.stderr
 
-    def write(self, record: Record) -> None:
+    def write(self, record: ShuntlyRecord) -> None:
         self._stream.write(record.to_json() + '\n')
         self._stream.flush()
 
@@ -37,7 +37,7 @@ class SinkFile(Sink):
             self._file = open(self._path, 'a')
         return self._file
 
-    def write(self, record: Record) -> None:
+    def write(self, record: ShuntlyRecord) -> None:
         f = self._ensure_open()
         f.write(record.to_json() + '\n')
         f.flush()
@@ -73,7 +73,7 @@ class SinkPipe(Sink):
 
         return self._fd
 
-    def write(self, record: Record) -> None:
+    def write(self, record: ShuntlyRecord) -> None:
         fd = self._ensure_open()
         if fd is not None:
             try:
@@ -95,7 +95,7 @@ class SinkMany(Sink):
     def __init__(self, sinks: list[Sink]):
         self._sinks = sinks
 
-    def write(self, record: Record) -> None:
+    def write(self, record: ShuntlyRecord) -> None:
         for sink in self._sinks:
             sink.write(record)
 

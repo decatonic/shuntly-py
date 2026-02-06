@@ -1,11 +1,11 @@
 import json
 from datetime import datetime
 
-from shuntly import Record
+from shuntly import ShuntlyRecord
 
 
 def test_build_populates_fields():
-    rec = Record.build(
+    rec = ShuntlyRecord.build(
         client='anthropic.Anthropic',
         method='messages.create',
         request={'model': 'claude-3'},
@@ -25,7 +25,7 @@ def test_build_populates_fields():
 
 
 def test_build_with_error():
-    rec = Record.build(
+    rec = ShuntlyRecord.build(
         client='openai.OpenAI',
         method='chat.completions.create',
         request={},
@@ -38,7 +38,7 @@ def test_build_with_error():
 
 
 def test_to_json_roundtrip():
-    rec = Record.build(
+    rec = ShuntlyRecord.build(
         client='test.Client',
         method='do.thing',
         request={'a': 1},

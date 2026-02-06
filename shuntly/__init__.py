@@ -1,10 +1,10 @@
-from shuntly.core import Shuntly
-from shuntly.record import Record
+from shuntly.core import shunt
+from shuntly.record import ShuntlyRecord
 from shuntly.sinks import Sink, SinkFile, SinkMany, SinkPipe, SinkStream
 
 __all__ = [
-    'Shuntly',
-    'Record',
+    'shunt',
+    'ShuntlyRecord',
     'Sink',
     'SinkFile',
     'SinkMany',
