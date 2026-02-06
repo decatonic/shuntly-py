@@ -147,6 +147,7 @@ client = shunt(my_client, methods=["chat.send", "embeddings.create"])
 
 ## What is New in Shuntly
 
+
 ### 0.4.0
 
 Renamed `Record` to `ShuntlyRecord`.
