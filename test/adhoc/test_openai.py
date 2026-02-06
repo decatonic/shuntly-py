@@ -5,7 +5,7 @@ import os
 import openai
 import pytest
 
-from shuntly import Shuntly, SinkStream
+from shuntly import SinkStream, shunt
 
 _API_KEY = os.environ.get('OPENAI_API_KEY')
 _MODEL = 'gpt-5-nano'  # 'gpt-4o-mini'

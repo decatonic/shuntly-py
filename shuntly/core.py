@@ -27,6 +27,7 @@ _METHOD_REGISTRY: dict[str, list[str]] = {
 class StreamWrapper:
     """
     Wraps a stream to accumulate chunks while proxying all other access to the original.
+    Intercepts iterable properties (like text_stream) to accumulate their chunks too.
     """
 
     __slots__ = ('_stream', '_chunks')
@@ -34,6 +35,11 @@ class StreamWrapper:
     def __init__(self, stream: Any):
         self._stream = stream
         self._chunks: list[Any] = []
+
+    def _wrap_iterator(self, iterator: Any) -> Any:
+        for chunk in iterator:
+            self._chunks.append(chunk)
+            yield chunk
 
     def __iter__(self) -> 'StreamWrapper':
         return self
@@ -44,7 +50,11 @@ class StreamWrapper:
         return chunk
 
     def __getattr__(self, name: str) -> Any:
-        return getattr(self._stream, name)
+        attr = getattr(self._stream, name)
+        # If it's an iterator/generator, wrap it to accumulate chunks
+        if hasattr(attr, '__iter__') and hasattr(attr, '__next__'):
+            return self._wrap_iterator(attr)
+        return attr
 
     @property
     def chunks(self) -> list[Any]:
@@ -98,8 +108,8 @@ class StreamProxy:
         try:
             if exc_type is not None:
                 error = f'{exc_type.__name__}: {exc_val}'
-            else:
-                response = self._wrapper.chunks if self._wrapper else None
+            elif self._wrapper is not None:
+                response = self._wrapper.chunks
             return self._cmanager.__exit__(exc_type, exc_val, exc_tb)
         finally:
             duration_ms = (time.perf_counter() - self._t_start) * 1000
@@ -218,4 +228,3 @@ class Shuntly:
 
 
 shunt = Shuntly.shunt
-

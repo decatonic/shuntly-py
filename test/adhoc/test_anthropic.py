@@ -5,7 +5,7 @@ import os
 import anthropic
 import pytest
 
-from shuntly import Shuntly, SinkStream
+from shuntly import SinkStream, shunt
 
 _API_KEY = os.environ.get('ANTHROPIC_API_KEY')
 _MODEL = 'claude-3-haiku-20240307'
@@ -73,6 +73,4 @@ def test_wrap_captures_stream():
     assert record['request']['model'] == _MODEL
     assert record['error'] is None
     assert record['duration_ms'] > 0
-    assert record['response']['id'].startswith('msg_')
-    assert record['response']['stop_reason'] in ('end_turn', 'max_tokens')
-    assert record['response']['content'][0]['text'] == valid
+    assert ''.join(record['response']) == valid

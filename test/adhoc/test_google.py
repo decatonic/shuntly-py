@@ -5,7 +5,7 @@ import os
 import pytest
 from google import genai
 
-from shuntly import Shuntly, SinkStream
+from shuntly import SinkStream, shunt
 
 _API_KEY = os.environ.get('GEMINI_API_KEY')
 _MODEL = 'gemini-2.5-flash-lite'

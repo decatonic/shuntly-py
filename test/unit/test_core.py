@@ -3,7 +3,7 @@ import json
 
 import pytest
 
-from shuntly import shunt, SinkStream
+from shuntly import SinkStream, shunt
 
 # ------------------------------------------------------------------------------
 # anthropic
