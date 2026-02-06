@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import functools
 import time
+from collections.abc import Iterator
 from typing import Any, TypeVar
 
 from shuntly.record import ShuntlyRecord
@@ -36,7 +37,7 @@ class StreamWrapper:
         self._stream = stream
         self._chunks: list[Any] = []
 
-    def _wrap_iterator(self, iterator: Any) -> Any:
+    def _wrap_iterator(self, iterator: Iterator[Any]) -> Iterator[Any]:
         for chunk in iterator:
             self._chunks.append(chunk)
             yield chunk
