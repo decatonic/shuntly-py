@@ -25,6 +25,7 @@ dev = [
     "nox==2025.11.12",
     "build==1.4.0",
     "litellm==1.81.10",
+    "python-dotenv==1.2.1",
     ]
 
 [tool.setuptools.packages.find]

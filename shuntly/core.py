@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import functools
 import time
+import types
 from collections.abc import Iterator
 from typing import Any, TypeVar
 
@@ -21,6 +22,9 @@ _METHOD_REGISTRY: dict[str, list[str]] = {
     ],
     'google.genai.client.Client': [
         'models.generate_content',
+    ],
+    'litellm': [
+        'completion',
     ],
 }
 
@@ -125,11 +129,68 @@ class StreamProxy:
             self._sink.write(record)
 
 
+class IteratorProxy:
+    """Wraps a plain iterator stream to defer recording until the iterator is exhausted."""
+
+    __slots__ = ('_client_name', '_method', '_request', '_sink', '_t_start', '_wrapper', '_recorded')
+
+    def __init__(
+        self,
+        iterator: Any,
+        *,
+        client_name: str,
+        method: str,
+        request: dict[str, Any],
+        sink: Sink,
+        t_start: float,
+    ):
+        self._client_name = client_name
+        self._method = method
+        self._request = request
+        self._sink = sink
+        self._t_start = t_start
+        self._wrapper = StreamWrapper(iterator)
+        self._recorded = False
+
+    def __iter__(self) -> 'IteratorProxy':
+        return self
+
+    def __next__(self) -> Any:
+        try:
+            return next(self._wrapper)
+        except StopIteration:
+            self._record(error=None)
+            raise
+        except Exception as exc:
+            self._record(error=f'{type(exc).__name__}: {exc}')
+            raise
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._wrapper, name)
+
+    def _record(self, error: str | None) -> None:
+        if self._recorded:
+            return
+        self._recorded = True
+        duration_ms = (time.perf_counter() - self._t_start) * 1000
+        record = ShuntlyRecord.build(
+            client=self._client_name,
+            method=self._method,
+            request=self._request,
+            response=self._wrapper.chunks if error is None else None,
+            duration_ms=duration_ms,
+            error=error,
+        )
+        self._sink.write(record)
+
+
 class Shuntly:
     """The  `shunt()` wrapper interface."""
 
     @staticmethod
     def _get_client_name(client: object) -> str:
+        if isinstance(client, types.ModuleType):
+            return client.__name__
         cls = client.__class__
         return f'{cls.__module__}.{cls.__qualname__}'
 
@@ -175,6 +236,17 @@ class Shuntly:
                 if hasattr(response, '__enter__') and hasattr(response, '__exit__'):
                     deferred = True
                     return StreamProxy(
+                        response,
+                        client_name=client_name,
+                        method=method,
+                        request=request,
+                        sink=sink,
+                        t_start=t_start,
+                    )
+                # Plain iterator stream — defer recording until exhausted
+                if hasattr(response, '__next__'):
+                    deferred = True
+                    return IteratorProxy(
                         response,
                         client_name=client_name,
                         method=method,

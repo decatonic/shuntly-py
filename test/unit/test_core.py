@@ -1,5 +1,7 @@
 import io
 import json
+import types
+from typing import Any
 
 import pytest
 
@@ -129,3 +131,87 @@ class TestWrapUnknownClient:
 
         with pytest.raises(ValueError, match='Unknown client'):
             shunt(Unknown(), SinkStream(io.StringIO()))
+
+
+# ------------------------------------------------------------------------------
+# litellm
+
+
+class _MockIterator:
+    """Plain iterator (no __enter__/__exit__) to simulate LiteLLM streaming."""
+
+    def __init__(self, items: list[Any]):
+        self._it = iter(items)
+
+    def __iter__(self) -> '_MockIterator':
+        return self
+
+    def __next__(self) -> Any:
+        return next(self._it)
+
+
+def _make_mock_litellm_module(
+    return_value: Any = None, side_effect: Exception | None = None
+) -> types.ModuleType:
+    mod = types.ModuleType('litellm')
+
+    def completion(**kwargs: Any) -> Any:
+        if side_effect is not None:
+            raise side_effect
+        return return_value
+
+    mod.completion = completion  # type: ignore[attr-defined]
+    return mod
+
+
+class TestWrapLitellm:
+    def test_returns_same_module(self) -> None:
+        mod = _make_mock_litellm_module(return_value={'id': 'cmpl_fake'})
+        result = shunt(mod, SinkStream(io.StringIO()))
+        assert result is mod
+
+    def test_records_call(self) -> None:
+        buf = io.StringIO()
+        mod = _make_mock_litellm_module(return_value={'id': 'cmpl_fake'})
+        shunt(mod, SinkStream(buf))
+        resp = mod.completion(model='openai/gpt-4o', messages=[{'role': 'user', 'content': 'hi'}])  # type: ignore[attr-defined]
+        assert resp['id'] == 'cmpl_fake'
+
+        data = json.loads(buf.getvalue().strip())
+        assert data['client'] == 'litellm'
+        assert data['method'] == 'completion'
+        assert data['request']['model'] == 'openai/gpt-4o'
+        assert data['response']['id'] == 'cmpl_fake'
+        assert data['error'] is None
+        assert data['duration_ms'] >= 0
+
+    def test_records_stream(self) -> None:
+        buf = io.StringIO()
+        chunks_in = [{'id': '1', 'text': 'hel'}, {'id': '2', 'text': 'lo'}]
+        mod = _make_mock_litellm_module(return_value=_MockIterator(chunks_in))
+        shunt(mod, SinkStream(buf))
+
+        collected = list(mod.completion(model='openai/gpt-4o', stream=True))  # type: ignore[attr-defined]
+        assert len(collected) == 2
+        assert collected[0]['text'] == 'hel'
+        assert collected[1]['text'] == 'lo'
+
+        data = json.loads(buf.getvalue().strip())
+        assert data['client'] == 'litellm'
+        assert data['method'] == 'completion'
+        assert data['request']['stream'] is True
+        assert data['error'] is None
+        assert isinstance(data['response'], list)
+        assert len(data['response']) == 2
+
+    def test_records_error(self) -> None:
+        buf = io.StringIO()
+        mod = _make_mock_litellm_module(side_effect=RuntimeError('API down'))
+        shunt(mod, SinkStream(buf))
+
+        with pytest.raises(RuntimeError, match='API down'):
+            mod.completion(model='x')  # type: ignore[attr-defined]
+
+        data = json.loads(buf.getvalue().strip())
+        assert data['error'] == 'RuntimeError: API down'
+        assert data['response'] is None
