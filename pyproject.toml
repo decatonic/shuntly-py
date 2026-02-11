@@ -18,12 +18,13 @@ Repository = "https://github.com/shuntly/shuntly-py"
 dev = [
     "pytest==9.0.2",
     "anthropic==0.77.0",
-    "openai==2.16.0",
+    "openai==2.20.0",
     "google-genai==1.62.0",
     "ruff==0.15.0",
     "mypy==1.19.1",
     "nox==2025.11.12",
     "build==1.4.0",
+    "litellm==1.81.10",
     ]
 
 [tool.setuptools.packages.find]
