@@ -174,7 +174,9 @@ class TestWrapLitellm:
         buf = io.StringIO()
         mod = _make_mock_litellm_module(return_value={'id': 'cmpl_fake'})
         shunt(mod, SinkStream(buf))
-        resp = mod.completion(model='openai/gpt-4o', messages=[{'role': 'user', 'content': 'hi'}])  # type: ignore[attr-defined]
+        resp = mod.completion(
+            model='openai/gpt-4o', messages=[{'role': 'user', 'content': 'hi'}]
+        )  # type: ignore[attr-defined]
         assert resp['id'] == 'cmpl_fake'
 
         data = json.loads(buf.getvalue().strip())

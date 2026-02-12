@@ -132,7 +132,15 @@ class StreamProxy:
 class IteratorProxy:
     """Wraps a plain iterator stream to defer recording until the iterator is exhausted."""
 
-    __slots__ = ('_client_name', '_method', '_request', '_sink', '_t_start', '_wrapper', '_recorded')
+    __slots__ = (
+        '_client_name',
+        '_method',
+        '_request',
+        '_sink',
+        '_t_start',
+        '_wrapper',
+        '_recorded',
+    )
 
     def __init__(
         self,
