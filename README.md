@@ -154,6 +154,11 @@ client = shunt(my_client, methods=["chat.send", "embeddings.create"])
 
 ## What is New in Shuntly
 
+### 0.6.0
+
+Added support for the LiteLLM `completion` interface.
+
+
 ### 0.5.0
 
 Corrected interleaved writes in `SinkPipe`.
