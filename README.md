@@ -144,6 +144,7 @@ Shuntly presently handles these clients:
 | `anthropic.Anthropic` | [`PyPI`](https://pypi.org/project/anthropic) | `messages.create`, `messages.stream` |
 | `openai.OpenAI` | [`PyPI`](https://pypi.org/project/openapi) | `chat.completions.create` |
 | `google.genai.Client` | [`PyPI`](https://pypi.org/project/google-genai) | `models.generate_content` |
+| `litellm` | [`PyPI`](https://pypi.org/project/litellm) | `completion` |
 
 For anything else, method paths can be explicitly provided:
 
