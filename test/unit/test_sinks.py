@@ -3,7 +3,7 @@ import json
 import os
 import tempfile
 
-from shuntly import ShuntlyRecord, SinkFile, SinkMany, SinkStream
+from shuntly import ShuntlyRecord, SinkFile, SinkMany, SinkRotating, SinkStream
 
 
 def _make_record(**overrides) -> ShuntlyRecord:
@@ -64,6 +64,70 @@ class TestSinkFile:
             sink.close()  # should not raise
         finally:
             os.unlink(path)
+
+
+class TestSinkRotating:
+    def test_writes_to_directory(self):
+        with tempfile.TemporaryDirectory() as d:
+            sink = SinkRotating(d)
+            sink.write(_make_record())
+            sink.close()
+            files = [f for f in os.listdir(d) if f.endswith('.jsonl')]
+            assert len(files) == 1
+            with open(os.path.join(d, files[0])) as f:
+                data = json.loads(f.read().strip())
+            assert data['client'] == 'test.Client'
+
+    def test_rotates_on_max_bytes(self):
+        with tempfile.TemporaryDirectory() as d:
+            # Use a tiny max_bytes to force rotation
+            sink = SinkRotating(d, max_bytes=50, max_total_bytes=0)
+            for _ in range(5):
+                sink.write(_make_record())
+            sink.close()
+            files = [f for f in os.listdir(d) if f.endswith('.jsonl')]
+            assert len(files) > 1
+
+    def test_prunes_old_files(self):
+        with tempfile.TemporaryDirectory() as d:
+            # Tiny limits to force both rotation and pruning
+            sink = SinkRotating(d, max_bytes=50, max_total_bytes=200)
+            for _ in range(20):
+                sink.write(_make_record())
+            sink.close()
+            total = sum(
+                os.path.getsize(os.path.join(d, f))
+                for f in os.listdir(d)
+                if f.endswith('.jsonl')
+            )
+            assert total <= 200 + 500  # allow headroom for last write
+
+    def test_creates_directory(self):
+        with tempfile.TemporaryDirectory() as d:
+            nested = os.path.join(d, 'sub', 'dir')
+            sink = SinkRotating(nested)
+            sink.write(_make_record())
+            sink.close()
+            assert os.path.isdir(nested)
+            files = [f for f in os.listdir(nested) if f.endswith('.jsonl')]
+            assert len(files) == 1
+
+    def test_close_is_idempotent(self):
+        with tempfile.TemporaryDirectory() as d:
+            sink = SinkRotating(d)
+            sink.write(_make_record())
+            sink.close()
+            sink.close()  # should not raise
+
+    def test_no_prune_when_disabled(self):
+        with tempfile.TemporaryDirectory() as d:
+            sink = SinkRotating(d, max_bytes=50, max_total_bytes=0)
+            for _ in range(10):
+                sink.write(_make_record())
+            sink.close()
+            files = [f for f in os.listdir(d) if f.endswith('.jsonl')]
+            # All files should remain since pruning is disabled
+            assert len(files) > 1
 
 
 class TestSinkMulti:

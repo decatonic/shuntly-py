@@ -105,6 +105,103 @@ class SinkPipe(Sink):
             self._fd = None
 
 
+class SinkRotating(Sink):
+    """A Sink that writes JSONL files into a directory with automatic rotation.
+
+    Each file is named with an ISO-8601 timestamp (e.g.
+    ``2025-02-15T210530Z.jsonl``).  A new file is started when the current
+    file reaches *max_bytes*.  Old files are removed when total directory
+    size exceeds *max_total_bytes* (oldest first).
+
+    Args:
+        directory: Path to the directory where log files are written.
+            Created automatically (including parents) if it does not exist.
+        max_bytes: Maximum size in bytes of a single file before rotating.
+            Defaults to 10 MB.
+        max_total_bytes: Maximum total size in bytes of all files in the
+            directory.  When exceeded the oldest files are deleted until
+            under the limit.  Defaults to 100 MB.  Set to ``0`` to disable
+            pruning.
+    """
+
+    _DEFAULT_MAX_BYTES = 10 * 1024 * 1024  # 10 MB
+    _DEFAULT_MAX_TOTAL_BYTES = 100 * 1024 * 1024  # 100 MB
+
+    def __init__(
+        self,
+        directory: str,
+        *,
+        max_bytes: int = _DEFAULT_MAX_BYTES,
+        max_total_bytes: int = _DEFAULT_MAX_TOTAL_BYTES,
+    ):
+        self._directory = directory
+        self._max_bytes = max_bytes
+        self._max_total_bytes = max_total_bytes
+        self._file: IO[str] | None = None
+        self._file_path: str | None = None
+        self._file_size: int = 0
+        os.makedirs(directory, exist_ok=True)
+
+    _counter: int = 0
+
+    @classmethod
+    def _make_filename(cls) -> str:
+        from datetime import datetime, timezone
+
+        ts = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H%M%SZ')
+        cls._counter += 1
+        return f'{ts}-{cls._counter:04d}.jsonl'
+
+    def _open_new_file(self) -> IO[str]:
+        if self._file is not None:
+            self._file.close()
+        name = self._make_filename()
+        self._file_path = os.path.join(self._directory, name)
+        self._file = open(self._file_path, 'a')
+        self._file_size = 0
+        return self._file
+
+    def _ensure_open(self) -> IO[str]:
+        if self._file is None:
+            return self._open_new_file()
+        if self._file_size >= self._max_bytes:
+            return self._open_new_file()
+        return self._file
+
+    def _prune(self) -> None:
+        if self._max_total_bytes <= 0:
+            return
+        files: list[tuple[str, int]] = []
+        for entry in os.scandir(self._directory):
+            if entry.is_file() and entry.name.endswith('.jsonl'):
+                files.append((entry.path, entry.stat().st_size))
+        # Sort oldest first (filenames are ISO timestamps)
+        files.sort(key=lambda t: t[0])
+        total = sum(s for _, s in files)
+        while total > self._max_total_bytes and files:
+            path, size = files.pop(0)
+            # Don't delete the current file
+            if path == self._file_path:
+                break
+            os.unlink(path)
+            total -= size
+
+    def write(self, record: ShuntlyRecord) -> None:
+        f = self._ensure_open()
+        line = record.to_json() + '\n'
+        f.write(line)
+        f.flush()
+        self._file_size += len(line.encode())
+        self._prune()
+
+    def close(self) -> None:
+        if self._file is not None:
+            self._file.close()
+            self._file = None
+            self._file_path = None
+            self._file_size = 0
+
+
 class SinkMany(Sink):
     def __init__(self, sinks: list[Sink]):
         self._sinks = sinks
