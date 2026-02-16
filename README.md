@@ -134,7 +134,6 @@ class SinkPrint(Sink):
         print(record.client, record.method, record.duration_ms)
 ```
 
-
 ## Supported SDKs
 
 Shuntly presently handles these clients:
@@ -153,6 +152,11 @@ client = shunt(my_client, methods=["chat.send", "embeddings.create"])
 ```
 
 ## What is New in Shuntly
+
+### 0.7.0
+
+Added new `SinkRotating` for rotating log handling.
+
 
 ### 0.6.0
 
