@@ -11,6 +11,8 @@ from shuntly.record import ShuntlyRecord
 
 
 class Sink(ABC):
+    __slots__ = ()
+
     @abstractmethod
     def write(self, record: ShuntlyRecord) -> None: ...
 
@@ -19,6 +21,8 @@ class Sink(ABC):
 
 
 class SinkStream(Sink):
+    __slots__ = ('_stream',)
+
     def __init__(self, stream: IO[str] | None = None):
         self._stream = stream or sys.stderr
 
@@ -28,6 +32,8 @@ class SinkStream(Sink):
 
 
 class SinkFile(Sink):
+    __slots__ = ('_path', '_file')
+
     def __init__(self, path: str):
         self._path = path
         self._file: IO[str] | None = None
@@ -55,6 +61,8 @@ class SinkPipe(Sink):
     in a loop to ensure complete records. Fails gracefully if the reader
     disconnects.
     """
+
+    __slots__ = ('_path', '_fd')
 
     def __init__(self, path: str):
         self._path = path
@@ -105,7 +113,112 @@ class SinkPipe(Sink):
             self._fd = None
 
 
+class SinkRotating(Sink):
+    """A Sink that writes JSONL files into a directory with automatic rotation.
+
+    Each file is named with an ISO-8601 timestamp (e.g.
+    ``2025-02-15T210530Z.jsonl``).  A new file is started when the current
+    file reaches *max_bytes_file*.  Old files are removed when total directory
+    size exceeds *max_bytes_dir* (oldest first).
+
+    Args:
+        directory: Path to the directory where log files are written.
+            Created automatically (including parents) if it does not exist.
+        max_bytes_file: Maximum size in bytes of a single file before rotating.
+            Defaults to 10 MB.
+        max_bytes_dir: Maximum total size in bytes of all files in the
+            directory.  When exceeded the oldest files are deleted until
+            under the limit.  Defaults to 100 MB.  Set to ``0`` to disable
+            pruning.
+    """
+
+    __slots__ = (
+        '_directory',
+        '_max_bytes_file',
+        '_max_bytes_dir',
+        '_file',
+        '_file_path',
+        '_file_size',
+    )
+
+    _DEFAULT_MAX_BYTES_FILE = 10 * 1024 * 1024  # 10 MB
+    _DEFAULT_MAX_BYTES_DIR = 100 * 1024 * 1024  # 100 MB
+
+    def __init__(
+        self,
+        directory: str,
+        *,
+        max_bytes_file: int = _DEFAULT_MAX_BYTES_FILE,
+        max_bytes_dir: int = _DEFAULT_MAX_BYTES_DIR,
+    ):
+        self._directory = directory
+        self._max_bytes_file = max_bytes_file
+        self._max_bytes_dir = max_bytes_dir
+        self._file: IO[str] | None = None
+        self._file_path: str | None = None
+        self._file_size: int = 0
+        os.makedirs(directory, exist_ok=True)
+
+    @staticmethod
+    def _make_filename() -> str:
+        from datetime import datetime, timezone
+
+        ts = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H%M%S.%fZ')
+        return f'{ts}.jsonl'
+
+    def _open_new_file(self) -> IO[str]:
+        if self._file is not None:
+            self._file.close()
+        name = self._make_filename()
+        self._file_path = os.path.join(self._directory, name)
+        self._file = open(self._file_path, 'a', newline='')
+        self._file_size = 0
+        return self._file
+
+    def _prune(self) -> None:
+        if self._max_bytes_dir <= 0:
+            return
+        files: list[tuple[str, int]] = []
+        for entry in os.scandir(self._directory):
+            if entry.is_file() and entry.name.endswith('.jsonl'):
+                files.append((entry.path, entry.stat().st_size))
+        # Sort oldest first (filenames are ISO timestamps)
+        files.sort(key=lambda t: t[0])
+        total = sum(s for _, s in files)
+        while total > self._max_bytes_dir and files:
+            path, size = files.pop(0)
+            # Don't delete the current file
+            if path == self._file_path:
+                break
+            os.unlink(path)
+            total -= size
+
+    def _ensure_open(self) -> IO[str]:
+        if self._file is None:
+            return self._open_new_file()
+        if self._file_size >= self._max_bytes_file:
+            self._prune()
+            return self._open_new_file()
+        return self._file
+
+    def write(self, record: ShuntlyRecord) -> None:
+        f = self._ensure_open()
+        line = record.to_json() + '\n'
+        f.write(line)
+        f.flush()
+        self._file_size += len(line.encode())
+
+    def close(self) -> None:
+        if self._file is not None:
+            self._file.close()
+            self._file = None
+            self._file_path = None
+            self._file_size = 0
+
+
 class SinkMany(Sink):
+    __slots__ = ('_sinks',)
+
     def __init__(self, sinks: list[Sink]):
         self._sinks = sinks
 
