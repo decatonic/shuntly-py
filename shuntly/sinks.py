@@ -11,6 +11,8 @@ from shuntly.record import ShuntlyRecord
 
 
 class Sink(ABC):
+    __slots__ = ()
+
     @abstractmethod
     def write(self, record: ShuntlyRecord) -> None: ...
 
@@ -19,6 +21,8 @@ class Sink(ABC):
 
 
 class SinkStream(Sink):
+    __slots__ = ('_stream',)
+
     def __init__(self, stream: IO[str] | None = None):
         self._stream = stream or sys.stderr
 
@@ -28,6 +32,8 @@ class SinkStream(Sink):
 
 
 class SinkFile(Sink):
+    __slots__ = ('_path', '_file')
+
     def __init__(self, path: str):
         self._path = path
         self._file: IO[str] | None = None
@@ -55,6 +61,8 @@ class SinkPipe(Sink):
     in a loop to ensure complete records. Fails gracefully if the reader
     disconnects.
     """
+
+    __slots__ = ('_path', '_fd')
 
     def __init__(self, path: str):
         self._path = path
@@ -123,6 +131,15 @@ class SinkRotating(Sink):
             under the limit.  Defaults to 100 MB.  Set to ``0`` to disable
             pruning.
     """
+
+    __slots__ = (
+        '_directory',
+        '_max_bytes_file',
+        '_max_bytes_dir',
+        '_file',
+        '_file_path',
+        '_file_size',
+    )
 
     _DEFAULT_MAX_BYTES_FILE = 10 * 1024 * 1024  # 10 MB
     _DEFAULT_MAX_BYTES_DIR = 100 * 1024 * 1024  # 100 MB
@@ -200,6 +217,8 @@ class SinkRotating(Sink):
 
 
 class SinkMany(Sink):
+    __slots__ = ('_sinks',)
+
     def __init__(self, sinks: list[Sink]):
         self._sinks = sinks
 
