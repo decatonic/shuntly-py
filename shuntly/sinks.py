@@ -142,15 +142,12 @@ class SinkRotating(Sink):
         self._file_size: int = 0
         os.makedirs(directory, exist_ok=True)
 
-    _counter: int = 0
-
-    @classmethod
-    def _make_filename(cls) -> str:
+    @staticmethod
+    def _make_filename() -> str:
         from datetime import datetime, timezone
 
-        ts = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H%M%SZ')
-        cls._counter += 1
-        return f'{ts}-{cls._counter:04d}.jsonl'
+        ts = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H%M%S.%fZ')
+        return f'{ts}.jsonl'
 
     def _open_new_file(self) -> IO[str]:
         if self._file is not None:
