@@ -158,14 +158,6 @@ class SinkRotating(Sink):
         self._file_size = 0
         return self._file
 
-    def _ensure_open(self) -> IO[str]:
-        if self._file is None:
-            return self._open_new_file()
-        if self._file_size >= self._max_bytes_file:
-            self._prune()
-            return self._open_new_file()
-        return self._file
-
     def _prune(self) -> None:
         if self._max_bytes_dir <= 0:
             return
@@ -183,6 +175,14 @@ class SinkRotating(Sink):
                 break
             os.unlink(path)
             total -= size
+
+    def _ensure_open(self) -> IO[str]:
+        if self._file is None:
+            return self._open_new_file()
+        if self._file_size >= self._max_bytes_file:
+            self._prune()
+            return self._open_new_file()
+        return self._file
 
     def write(self, record: ShuntlyRecord) -> None:
         f = self._ensure_open()
