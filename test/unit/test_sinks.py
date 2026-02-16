@@ -1,10 +1,7 @@
 import io
 import json
 import os
-import sys
 import tempfile
-
-import pytest
 
 from shuntly import ShuntlyRecord, SinkFile, SinkMany, SinkRotating, SinkStream
 
@@ -91,7 +88,6 @@ class TestSinkRotating:
             files = [f for f in os.listdir(d) if f.endswith('.jsonl')]
             assert len(files) > 1
 
-    @pytest.mark.skipif(sys.platform == 'win32', reason='file deletion unreliable on Windows')
     def test_prunes_old_files(self):
         with tempfile.TemporaryDirectory() as d:
             # Tiny limits to force both rotation and pruning

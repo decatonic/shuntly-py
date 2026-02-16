@@ -154,7 +154,7 @@ class SinkRotating(Sink):
             self._file.close()
         name = self._make_filename()
         self._file_path = os.path.join(self._directory, name)
-        self._file = open(self._file_path, 'a')
+        self._file = open(self._file_path, 'a', newline='')
         self._file_size = 0
         return self._file
 
