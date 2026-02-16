@@ -1,7 +1,10 @@
 import io
 import json
 import os
+import sys
 import tempfile
+
+import pytest
 
 from shuntly import ShuntlyRecord, SinkFile, SinkMany, SinkRotating, SinkStream
 
@@ -66,6 +69,9 @@ class TestSinkFile:
             os.unlink(path)
 
 
+@pytest.mark.skipif(
+    sys.platform == 'win32', reason='SinkRotating tests not configured for Windows'
+)
 class TestSinkRotating:
     def test_writes_to_directory(self):
         with tempfile.TemporaryDirectory() as d:
