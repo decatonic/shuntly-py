@@ -81,7 +81,7 @@ class TestSinkRotating:
     def test_rotates_on_max_bytes(self):
         with tempfile.TemporaryDirectory() as d:
             # Use a tiny max_bytes to force rotation
-            sink = SinkRotating(d, max_bytes=50, max_total_bytes=0)
+            sink = SinkRotating(d, max_bytes_file=50, max_bytes_dir=0)
             for _ in range(5):
                 sink.write(_make_record())
             sink.close()
@@ -91,7 +91,7 @@ class TestSinkRotating:
     def test_prunes_old_files(self):
         with tempfile.TemporaryDirectory() as d:
             # Tiny limits to force both rotation and pruning
-            sink = SinkRotating(d, max_bytes=50, max_total_bytes=200)
+            sink = SinkRotating(d, max_bytes_file=50, max_bytes_dir=200)
             for _ in range(20):
                 sink.write(_make_record())
             sink.close()
@@ -121,7 +121,7 @@ class TestSinkRotating:
 
     def test_no_prune_when_disabled(self):
         with tempfile.TemporaryDirectory() as d:
-            sink = SinkRotating(d, max_bytes=50, max_total_bytes=0)
+            sink = SinkRotating(d, max_bytes_file=50, max_bytes_dir=0)
             for _ in range(10):
                 sink.write(_make_record())
             sink.close()

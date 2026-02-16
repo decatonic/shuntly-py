@@ -110,33 +110,33 @@ class SinkRotating(Sink):
 
     Each file is named with an ISO-8601 timestamp (e.g.
     ``2025-02-15T210530Z.jsonl``).  A new file is started when the current
-    file reaches *max_bytes*.  Old files are removed when total directory
-    size exceeds *max_total_bytes* (oldest first).
+    file reaches *max_bytes_file*.  Old files are removed when total directory
+    size exceeds *max_bytes_dir* (oldest first).
 
     Args:
         directory: Path to the directory where log files are written.
             Created automatically (including parents) if it does not exist.
-        max_bytes: Maximum size in bytes of a single file before rotating.
+        max_bytes_file: Maximum size in bytes of a single file before rotating.
             Defaults to 10 MB.
-        max_total_bytes: Maximum total size in bytes of all files in the
+        max_bytes_dir: Maximum total size in bytes of all files in the
             directory.  When exceeded the oldest files are deleted until
             under the limit.  Defaults to 100 MB.  Set to ``0`` to disable
             pruning.
     """
 
-    _DEFAULT_MAX_BYTES = 10 * 1024 * 1024  # 10 MB
-    _DEFAULT_MAX_TOTAL_BYTES = 100 * 1024 * 1024  # 100 MB
+    _DEFAULT_MAX_BYTES_FILE = 10 * 1024 * 1024  # 10 MB
+    _DEFAULT_MAX_BYTES_DIR = 100 * 1024 * 1024  # 100 MB
 
     def __init__(
         self,
         directory: str,
         *,
-        max_bytes: int = _DEFAULT_MAX_BYTES,
-        max_total_bytes: int = _DEFAULT_MAX_TOTAL_BYTES,
+        max_bytes_file: int = _DEFAULT_MAX_BYTES_FILE,
+        max_bytes_dir: int = _DEFAULT_MAX_BYTES_DIR,
     ):
         self._directory = directory
-        self._max_bytes = max_bytes
-        self._max_total_bytes = max_total_bytes
+        self._max_bytes_file = max_bytes_file
+        self._max_bytes_dir = max_bytes_dir
         self._file: IO[str] | None = None
         self._file_path: str | None = None
         self._file_size: int = 0
@@ -161,13 +161,13 @@ class SinkRotating(Sink):
     def _ensure_open(self) -> IO[str]:
         if self._file is None:
             return self._open_new_file()
-        if self._file_size >= self._max_bytes:
+        if self._file_size >= self._max_bytes_file:
             self._prune()
             return self._open_new_file()
         return self._file
 
     def _prune(self) -> None:
-        if self._max_total_bytes <= 0:
+        if self._max_bytes_dir <= 0:
             return
         files: list[tuple[str, int]] = []
         for entry in os.scandir(self._directory):
@@ -176,7 +176,7 @@ class SinkRotating(Sink):
         # Sort oldest first (filenames are ISO timestamps)
         files.sort(key=lambda t: t[0])
         total = sum(s for _, s in files)
-        while total > self._max_total_bytes and files:
+        while total > self._max_bytes_dir and files:
             path, size = files.pop(0)
             # Don't delete the current file
             if path == self._file_path:
