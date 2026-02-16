@@ -165,6 +165,7 @@ class SinkRotating(Sink):
         if self._file is None:
             return self._open_new_file()
         if self._file_size >= self._max_bytes:
+            self._prune()
             return self._open_new_file()
         return self._file
 
@@ -192,7 +193,6 @@ class SinkRotating(Sink):
         f.write(line)
         f.flush()
         self._file_size += len(line.encode())
-        self._prune()
 
     def close(self) -> None:
         if self._file is not None:
