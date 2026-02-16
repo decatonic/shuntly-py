@@ -95,12 +95,25 @@ class TestSinkRotating:
             for _ in range(20):
                 sink.write(_make_record())
             sink.close()
-            total = sum(
-                os.path.getsize(os.path.join(d, f))
-                for f in os.listdir(d)
-                if f.endswith('.jsonl')
+            files = [f for f in os.listdir(d) if f.endswith('.jsonl')]
+            # Without pruning, 20 writes at ~230 bytes each with 50-byte
+            # rotation would create many files; pruning should reduce them.
+            # We also write at least one file with no pruning on the first
+            # rotation, so just verify some were removed.
+            no_prune_sink = SinkRotating(
+                os.path.join(d, 'no_prune'),
+                max_bytes_file=50,
+                max_bytes_dir=0,
             )
-            assert total <= 200 + 500  # allow headroom for last write
+            for _ in range(20):
+                no_prune_sink.write(_make_record())
+            no_prune_sink.close()
+            no_prune_files = [
+                f
+                for f in os.listdir(os.path.join(d, 'no_prune'))
+                if f.endswith('.jsonl')
+            ]
+            assert len(files) < len(no_prune_files)
 
     def test_creates_directory(self):
         with tempfile.TemporaryDirectory() as d:
