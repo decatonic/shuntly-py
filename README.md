@@ -109,6 +109,25 @@ Then, after your command is complete, view the file:
 $ fx /tmp/shuntly.jsonl
 ```
 
+### Store Shuntly Output with File Rotation
+
+For long-running applications, `SinkRotating` writes JSONL records to a directory with automatic file rotation and cleanup. Files are named with UTC timestamps (e.g. `2025-02-15T210530Z.jsonl`).
+
+```python
+from shuntly import shunt, SinkRotating
+client = shunt(Anthropic(api_key=API_KEY), SinkRotating('/tmp/shuntly'))
+```
+
+When a file exceeds `max_bytes_file` (default 10 MB), a new file is created. When the directory exceeds `max_bytes_dir` (default 100 MB), the oldest files are pruned. Set `max_bytes_dir=0` to disable pruning and retain all files. Both limits are configurable:
+
+```python
+client = shunt(Anthropic(api_key=API_KEY), SinkRotating(
+    '/tmp/shuntly',
+    max_bytes_file=50 * 1024 * 1024,  # 50 MB per file
+    max_bytes_dir=500 * 1024 * 1024,  # 500 MB total
+))
+```
+
 ### Send Shuntly Output to Multiple Sinks
 
 Using `SinkMany`, multiple sinks can be written to simultaneously.
