@@ -26,6 +26,9 @@ _METHOD_REGISTRY: dict[str, list[str]] = {
     'litellm': [
         'completion',
     ],
+    'any_llm': [
+        'completion',
+    ],
 }
 
 

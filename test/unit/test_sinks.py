@@ -3,7 +3,9 @@ import json
 import os
 import tempfile
 
-from shuntly import ShuntlyRecord, SinkFile, SinkMany, SinkStream
+from unittest.mock import MagicMock
+
+from shuntly import ShuntlyRecord, SinkFile, SinkMany, SinkS3, SinkStream
 
 
 def _make_record(**overrides) -> ShuntlyRecord:
@@ -64,6 +66,63 @@ class TestSinkFile:
             sink.close()  # should not raise
         finally:
             os.unlink(path)
+
+
+def _make_s3_sink(**kwargs) -> tuple[SinkS3, MagicMock]:
+    defaults = dict(
+        bucket='test-bucket',
+        access_key_id='AKID',
+        secret_access_key='SECRET',
+    )
+    defaults.update(kwargs)
+    sink = SinkS3(**defaults)
+    mock_client = MagicMock()
+    sink._client = mock_client
+    return sink, mock_client
+
+
+class TestSinkS3:
+    def test_uploads_on_close(self):
+        sink, mock_client = _make_s3_sink()
+        sink.write(_make_record())
+        sink.write(_make_record())
+        mock_client.put_object.assert_not_called()
+
+        sink.close()
+        mock_client.put_object.assert_called_once()
+        call_kwargs = mock_client.put_object.call_args[1]
+        assert call_kwargs['Bucket'] == 'test-bucket'
+        assert call_kwargs['Key'].endswith('.jsonl')
+        assert call_kwargs['ContentType'] == 'application/x-ndjson'
+        body = call_kwargs['Body'].decode()
+        lines = body.strip().split('\n')
+        assert len(lines) == 2
+
+    def test_flushes_on_max_bytes(self):
+        sink, mock_client = _make_s3_sink(max_bytes_file=50)
+        for _ in range(5):
+            sink.write(_make_record())
+        assert mock_client.put_object.call_count >= 1
+        sink.close()
+
+    def test_prefix_in_key(self):
+        sink, mock_client = _make_s3_sink(prefix='prod/logs/')
+        sink.write(_make_record())
+        sink.close()
+        key = mock_client.put_object.call_args[1]['Key']
+        assert key.startswith('prod/logs/')
+
+    def test_no_upload_when_empty(self):
+        sink, mock_client = _make_s3_sink()
+        sink.close()
+        mock_client.put_object.assert_not_called()
+
+    def test_close_is_idempotent(self):
+        sink, mock_client = _make_s3_sink()
+        sink.write(_make_record())
+        sink.close()
+        sink.close()  # should not upload again
+        assert mock_client.put_object.call_count == 1
 
 
 class TestSinkMulti:
