@@ -1,0 +1,62 @@
+import io
+import json
+import os
+
+import pytest
+
+try:
+    import any_llm
+except ImportError:
+    pytest.skip("any-llm-sdk not available", allow_module_level=True)
+
+from shuntly import SinkStream, shunt
+
+_OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
+_MODEL = 'gpt-3.5-turbo'
+
+pytestmark = pytest.mark.skipif(not _OPENAI_API_KEY, reason='OPENAI_API_KEY not set')
+
+
+def test_wrap_captures_record():
+    buf = io.StringIO()
+    client = shunt(any_llm, SinkStream(buf))
+
+    response = client.completion(
+        model=_MODEL,
+        provider='openai',
+        messages=[{'role': 'user', 'content': 'Reply with the single word: pong'}],
+    )
+
+    assert response.choices[0].message.content.lower().strip() == 'pong'
+
+    record = json.loads(buf.getvalue().strip())
+
+    assert record['client'] == 'any_llm'
+    assert record['method'] == 'completion'
+    assert record['request']['model'] == _MODEL
+    assert record['request']['provider'] == 'openai'
+    assert record['error'] is None
+    assert record['duration_ms'] > 0
+    assert record['response']['choices'][0]['message']['content'].lower().strip() == 'pong'
+
+
+def test_wrap_captures_alternative_syntax():
+    """Test the provider:model syntax supported by any-llm."""
+    buf = io.StringIO()
+    client = shunt(any_llm, SinkStream(buf))
+
+    response = client.completion(
+        model='openai:gpt-3.5-turbo',
+        messages=[{'role': 'user', 'content': 'Reply with the single word: ping'}],
+    )
+
+    assert response.choices[0].message.content.lower().strip() == 'ping'
+
+    record = json.loads(buf.getvalue().strip())
+
+    assert record['client'] == 'any_llm'
+    assert record['method'] == 'completion'
+    assert record['request']['model'] == 'openai:gpt-3.5-turbo'
+    assert record['error'] is None
+    assert record['duration_ms'] > 0
+    assert record['response']['choices'][0]['message']['content'].lower().strip() == 'ping'
