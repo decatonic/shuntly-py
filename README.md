@@ -173,6 +173,12 @@ client = shunt(my_client, methods=["chat.send", "embeddings.create"])
 
 ## What is New in Shuntly
 
+
+### dev
+
+Added support for Mozilla `any_llm.completion()`
+
+
 ### 0.7.0
 
 Added new `SinkRotating` for rotating log handling.
