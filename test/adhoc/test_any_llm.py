@@ -57,6 +57,4 @@ def test_wrap_captures_alternative_syntax():
     assert record['request']['model'] == f'openai:{_MODEL}'
     assert record['error'] is None
     assert record['duration_ms'] > 0
-    assert (
-        record['response']['choices'][0]['message']['content'].lower().strip() == 'red'
-    )
+    assert record['response']['choices'][0]['message']['content'].lower().strip() == 'red'

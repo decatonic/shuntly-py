@@ -10,7 +10,7 @@ A lightweight wiretap for LLM SDKs: capture all requests and responses with a si
 
 Shuntly wraps LLM SDKs to record every request and response as JSON. Calling `shunt()` wraps and returns a client with its original interface and types preserved, permitting consistent IDE autocomplete and type checking. Shuntly provides a collection of configurable "sinks" to write records to stderr, files, named pipes, or any combination.
 
-While debugging LLM tooling, maybe you want to see exactly what is being sent and returned. When launching an agent, maybe you want to record every call to the LLM. Shuntly can capture it all without TLS interception, a web-based platform, or complicated logging infrastructure.
+While debugging LLM tooling, maybe you want to see exactly what is being sent and returned. When launching an agent, maybe you want to record every call to the LLM. Shuntly can capture it all without TLS interception, a proxy or web-based platform, or complicated logging infrastructure.
 
 
 ## Install
@@ -145,6 +145,7 @@ Shuntly presently handles these clients:
 | `openai.OpenAI` | [`PyPI`](https://pypi.org/project/openapi) | `chat.completions.create` |
 | `google.genai.Client` | [`PyPI`](https://pypi.org/project/google-genai) | `models.generate_content` |
 | `litellm` | [`PyPI`](https://pypi.org/project/litellm) | `completion` |
+| `any-llm` | [`PyPI`](https://pypi.org/project/any-llm-sdk) | `completion` |
 
 For anything else, method paths can be explicitly provided:
 
