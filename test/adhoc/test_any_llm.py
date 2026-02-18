@@ -1,16 +1,24 @@
 import io
 import json
 import os
+import sys
 
-import any_llm
 import pytest
+
+if sys.version_info >= (3, 11):
+    import any_llm
 
 from shuntly import SinkStream, shunt
 
 _OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
 _MODEL = 'gpt-4o-mini'
 
-pytestmark = pytest.mark.skipif(not _OPENAI_API_KEY, reason='OPENAI_API_KEY not set')
+pytestmark = [
+    pytest.mark.skipif(
+        sys.version_info < (3, 11), reason='any-llm-sdk requires Python >= 3.11'
+    ),
+    pytest.mark.skipif(not _OPENAI_API_KEY, reason='OPENAI_API_KEY not set'),
+]
 
 
 def test_wrap_captures_record():
