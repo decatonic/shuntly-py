@@ -2,17 +2,13 @@ import io
 import json
 import os
 
+import any_llm
 import pytest
-
-try:
-    import any_llm
-except ImportError:
-    pytest.skip("any-llm-sdk not available", allow_module_level=True)
 
 from shuntly import SinkStream, shunt
 
 _OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
-_MODEL = 'gpt-3.5-turbo'
+_MODEL = 'gpt-4o-mini'
 
 pytestmark = pytest.mark.skipif(not _OPENAI_API_KEY, reason='OPENAI_API_KEY not set')
 
@@ -37,7 +33,9 @@ def test_wrap_captures_record():
     assert record['request']['provider'] == 'openai'
     assert record['error'] is None
     assert record['duration_ms'] > 0
-    assert record['response']['choices'][0]['message']['content'].lower().strip() == 'pong'
+    assert (
+        record['response']['choices'][0]['message']['content'].lower().strip() == 'pong'
+    )
 
 
 def test_wrap_captures_alternative_syntax():
@@ -46,17 +44,19 @@ def test_wrap_captures_alternative_syntax():
     client = shunt(any_llm, SinkStream(buf))
 
     response = client.completion(
-        model='openai:gpt-3.5-turbo',
-        messages=[{'role': 'user', 'content': 'Reply with the single word: ping'}],
+        model=f'openai:{_MODEL}',
+        messages=[{'role': 'user', 'content': 'Reply with the single word: red'}],
     )
 
-    assert response.choices[0].message.content.lower().strip() == 'ping'
+    assert response.choices[0].message.content.lower().strip() == 'red'
 
     record = json.loads(buf.getvalue().strip())
 
     assert record['client'] == 'any_llm'
     assert record['method'] == 'completion'
-    assert record['request']['model'] == 'openai:gpt-3.5-turbo'
+    assert record['request']['model'] == f'openai:{_MODEL}'
     assert record['error'] is None
     assert record['duration_ms'] > 0
-    assert record['response']['choices'][0]['message']['content'].lower().strip() == 'ping'
+    assert (
+        record['response']['choices'][0]['message']['content'].lower().strip() == 'red'
+    )
