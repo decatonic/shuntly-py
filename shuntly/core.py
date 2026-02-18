@@ -33,6 +33,10 @@ _METHOD_REGISTRY: dict[str, list[str]] = {
         'chat',
         'generate',
     ],
+    'ollama._client.Client': [
+        'chat',
+        'generate',
+    ],
 }
 
 
